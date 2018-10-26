@@ -5,6 +5,7 @@
 #include <DHT.h>  // Library for DHT sensors
 #include <ESP8266WiFi.h>
 #include <ThingSpeak.h>
+#include <IniFile.h>
 
 //Constants ARDUINO UNO
 /*
@@ -54,6 +55,36 @@
 #define DHTPIN_IN D7     // what pin we're connected to
 #define DHTTYPE_IN DHT22   // DHT 22 
 
+#define WIFI_MAX_WAITING_TIME 15000 // How much time we wait for WiFi connection 
+
+/* Serial Monitor messages definition */
+
+#define SEPARATOR "=============================="
+#define DOT "."
+#define IN_AND_OUT_SENSORS "IN-house and Outdoor Humidity & temperature Sensors"
+#define ACCESSING_WIFI "Accessing WiFi"
+#define WIFI_CONNECTED "WiFi connection successful!"
+#define WIFI_NOT_CONNECTED "WiFi connection failed! Please check settings."
+#define INITIALIZING_SD "Initializing SD card..."
+#define SD_CARD_INITIALIZED "SD card initialization successful!"
+#define SD_CARD_NOT_INITIALIZED "SD card failed! Please check connection."
+#define IN_CONDITIONS "IN-Side Conditions  => "
+#define OUT_CONDITIONS "OUT-Side Conditions  => "
+
+/* LCD messages definition */
+
+#define LCD_ACCESSING_WIFI "Accessing WiFi"
+#define LCD_WIFI_CONNECTED "WiFi successful"
+#define LCD_WIFI_NOT_CONNECTED "WiFi failed"
+#define LCD_INITIALIZING_SD "Initializing SD"
+#define LCD_SD_CARD_INITIALIZED "SD initialized"
+#define LCD_SD_CARD_NOT_INITIALIZED "SD failed"
+#define LCD_EMPTY ""
+
+/* Macro Function for printing to user (Serial & LCD) */
+
+#define PRINT_TO_USER(serial_message, lcd_message) print_to_user(serial_message, lcd_message)
+
 // Initialize DHT sensor for normal 16mhz Arduino
 DHT dht1(DHTPIN_IN, DHTTYPE_IN);
 DHT dht2(DHTPIN_OUT, DHTTYPE_OUT);
@@ -63,11 +94,11 @@ const int Ld1_greenPin = D2;
 const int Ld1_redPin=D3;
 const int Ld2_redPin= D4;
 const int delay_time = 500;
-const long timeframe = 60000;
+const long timeframe = 6000;
 const int readspermin = 10;
 
-String ssid = "Vergina-0";
-String password = "Fr33w1f1";
+String ssid = "Dimitris";
+String password = "2jJKBCYdT!";
 WiFiClient client; 
 // ThingSpeak information
 unsigned long channelID = 598750;
@@ -77,6 +108,10 @@ unsigned int df2 = 2;  // Data Field to write Humidity data
 unsigned int df3 = 3;  // Data Field to write distress index data
 
 //Variables
+int flag; /* if SD card & WiFi OK, flag = 0
+             if SD card OK, WiFi failed to connect, flag = 1
+             if SD card failed to initialize, WiFi OK, flag = 2
+             if SD card failed to initialize & WiFi failed to connect, flag = 3 */           
 int chk;
 float hum,hum2;  //Stores humidity value
 float temp,temp2; //Stores temperature value
@@ -95,19 +130,33 @@ void setup() {
 
   Serial.begin(115200);
 
-  readSD(); 
-  wificonnect();
+  if (readSD()){
+    if (wificonnect())
+      flag = 0;  
+    else
+      flag = 1; 
+  }
+  else{
+    if (wificonnect())
+      flag = 2;  
+    else
+      flag = 3;
+  }
   
   dht1.begin();
   dht2.begin();
   
   switchoff();   
-  Serial.println("IN-house and Outdoor Humidity & temperature Sensors");
+  PRINT_TO_USER(IN_AND_OUT_SENSORS, LCD_EMPTY);
   delay(7000);//Delay to let system boot Wait before accessing Sensor  
 
 }
 
 void loop() {
+
+  // If SD card & WiFi OK
+  if (flag == 0){
+    
     int s1,s2;
     float avg1C,avg1H,avg2C,avg2H,DI_temp;
 
@@ -142,17 +191,36 @@ void loop() {
     avg2H = avg2H/s2;
     DI_temp= round(avg1C - 0.55 * (1 - 0.01 * avg1H) * (avg1C - 14.5));
         
-   //Read data and store it to variables hum and temp 
-    Serial.println("-------------");
-    Serial.print("IN-Side Conditions  => "); 
+   // Read data and store it to variables hum and temp 
+    PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
+    PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY);
     print_temphum(avg1C,avg1H);
-    Serial.print("OUT-Side Conditions => "); 
+    PRINT_TO_USER(OUT_CONDITIONS, LCD_EMPTY);
     print_temphum(avg2C,avg2H); 
     int DI = calc_DI(DI_temp);
-    write2TSData( channelID , df1, avg1C , df2, avg1H , df3 ,DI ); 
+ //   write2TSData( channelID , df1, avg1C , df2, avg1H , df3 ,DI ); 
     led_status(DI);
-}
+  }
 
+  // If SD card OK, WiFi failed to connect
+  else if (flag == 1){
+
+    
+  }
+
+  // If SD card failed to initialize, WiFi OK
+  else if (flag == 2){
+    
+
+    
+  }
+ // If SD card failed to initialize & WiFi failed to connect
+  else{
+    
+
+    
+  }
+}
 
 //use this function if you want multiple fields simultaneously
 int write2TSData( long TSChannel, unsigned int TSField1, float field1Data, unsigned int TSField2, float field2Data, unsigned int TSField3, long field3Data ){
@@ -184,17 +252,18 @@ int calc_DI(int temp){
 }
 
 
-void readSD(){
+bool readSD(){
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
-  Serial.println("==============================");
-  Serial.print("Initializing SD card...");
+  PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
+  PRINT_TO_USER(INITIALIZING_SD, LCD_INITIALIZING_SD);
   if (!SD.begin(4)) {
-    Serial.println("initialization failed!");
-    while (1);
+    PRINT_TO_USER(SD_CARD_NOT_INITIALIZED, LCD_SD_CARD_NOT_INITIALIZED);
+    return false;
+   // while (1);
   }
-  Serial.println("initialization done.");
+  PRINT_TO_USER(SD_CARD_INITIALIZED, LCD_SD_CARD_INITIALIZED);
 
   myFile = SD.open(settings_file);
   if (myFile) {
@@ -209,25 +278,31 @@ void readSD(){
   } else {
     // if the file didn't open, print an error:
     Serial.println("error opening " +  settings_file);
+    return false;
   }
-  Serial.println("=============================="); 
+  PRINT_TO_USER(SEPARATOR, LCD_EMPTY); 
+  return true;
 }
 
 
-void   wificonnect(){
+bool   wificonnect(){
 
   WiFi.begin(ssid.c_str(), password.c_str());
   Serial.println();
-  Serial.println("Trying to connect to " + ssid);
+  PRINT_TO_USER(ACCESSING_WIFI, LCD_ACCESSING_WIFI);
+  
+  uint32_t tStart = millis(); // WiFi starts the attempt to connect
   while (WiFi.status() != WL_CONNECTED)
   {
+    if ((millis()-tStart) >= WIFI_MAX_WAITING_TIME)
+      return false;
+      
     delay(500);
-    Serial.print(".");
+    PRINT_TO_USER(DOT, LCD_EMPTY);
   }
-  Serial.println();
-  Serial.print("Connected, IP address: ");
-  Serial.println(WiFi.localIP()); 
-  ThingSpeak.begin( client );
+  PRINT_TO_USER(WIFI_CONNECTED, LCD_WIFI_CONNECTED);
+//  ThingSpeak.begin( client );
+  return true;
 }
 
 void print_temphum(float temp, float hum){
@@ -278,4 +353,14 @@ void setColor1(int redValue, int greenValue, int blueValue) {
 
 void setColor2(int redValue) {
   digitalWrite(Ld2_redPin, redValue);
+}
+
+void print_to_user(String serial_message, String lcd_message){
+  if (serial_message == IN_CONDITIONS || serial_message == OUT_CONDITIONS || serial_message == DOT)
+    Serial.print(serial_message);
+  else
+    Serial.println(serial_message);
+    
+//  lcd.clear();
+//  lcd.print(lcd_message);
 }
