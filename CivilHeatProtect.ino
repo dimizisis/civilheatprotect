@@ -112,7 +112,7 @@ const int Ld1_redPin=D3;
 const int Ld2_redPin= D4;
 int delay_time;
 long timeframe;
-int readspermin;
+int readsperframe;
 
 String wifi_ssid;
 String wifi_pass;
@@ -201,7 +201,7 @@ void loop() {
 
     s1=0; s2=0; 
     avg1C=0; avg1H=0; avg2C=0; avg2H=0; DI_temp=0;
-    for(int i=0;i<readspermin; i++){
+    for(int i=0;i<readsperframe; i++){
         temp= dht1.readTemperature();
         hum = dht1.readHumidity();  
         temp2= dht2.readTemperature();          
@@ -221,7 +221,7 @@ void loop() {
           avg2H = avg2H + hum2;
           s2=s2+1;
         } 
-        delay(timeframe/readspermin);//Wait n seconds before accessing sensor again.           
+        delay(timeframe/readsperframe);//Wait n seconds before accessing sensor again.           
     }
 
     avg1C = avg1C/s1;
@@ -336,6 +336,8 @@ int readSD(){
     return 3;
   }
 
+  /* Reading user settings from configuration file */
+
   get_setting_from_file(ini, USER_SETTINGS, "WIFI_SSID");
 
   wifi_ssid = String(buffer);
@@ -344,17 +346,19 @@ int readSD(){
 
   wifi_pass = String(buffer);
 
-  get_setting_from_file(ini, SYSTEM_SETTINGS, "IOT_SERVER");
+  get_setting_from_file(ini, USER_SETTINGS, "WRITE_API_KEY");
 
-  iot_server = String(buffer);
+  writeAPIKey = buffer;
 
-  get_setting_from_file(ini, SYSTEM_SETTINGS, "CHANNEL_ID");
+  get_setting_from_file(ini, USER_SETTINGS, "CHANNEL_ID");
 
   sscanf(buffer, "%ld", &channelID);
 
-  get_setting_from_file(ini, SYSTEM_SETTINGS, "WRITE_API_KEY");
+  /* Reading system settings from configuration file */
 
-  writeAPIKey = buffer;
+  get_setting_from_file(ini, SYSTEM_SETTINGS, "IOT_SERVER");
+
+  iot_server = String(buffer);
 
   get_setting_from_file(ini, SYSTEM_SETTINGS, "DELAY_TIME");
 
@@ -364,9 +368,9 @@ int readSD(){
 
   sscanf(buffer, "%ld", &timeframe);
 
-  get_setting_from_file(ini, SYSTEM_SETTINGS, "READS_PER_MINUTE");
+  get_setting_from_file(ini, SYSTEM_SETTINGS, "READS_PER_FRAME");
 
-  sscanf(buffer, "%d", &readspermin);
+  sscanf(buffer, "%d", &readsperframe);
 
   return 0;
 
@@ -489,11 +493,11 @@ void print_to_user(String serial_message, String lcd_message){
 
 void get_default_settings(){
   iot_server = "ThingSpeak";
-  channelID = 598750;
-  writeAPIKey = "3WAVULEKX06N4LNM";
+  channelID = 0;
+  writeAPIKey = "";
   delay_time = 500;
   timeframe = 6000;
-  readspermin = 10;
+  readsperframe = 10;
 
   wifi_ssid="Test";
   wifi_pass="Test";
