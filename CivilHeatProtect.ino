@@ -112,7 +112,7 @@ const int Ld1_redPin=D3;
 const int Ld2_redPin= D4;
 int delay_time;
 long timeframe;
-int readsperframe;
+int readspermin;
 
 String wifi_ssid;
 String wifi_pass;
@@ -164,27 +164,20 @@ void setup() {
     get_default_settings();
     PRINT_TO_USER(DEFAULT_SETTINGS, LCD_DEFAULT_SETTINGS);
     delay(3000);
-    if (wificonnect())
-      flag = 2;  
-    else
-      flag = 3;
+    flag = 3;
   }
   else{
     get_default_settings();
     PRINT_TO_USER(DEFAULT_SETTINGS, LCD_DEFAULT_SETTINGS);
     delay(3000);
-    if (wificonnect()){
-      flag = 0;  // We have SD card available, but not configuration file. (SD Card & WiFi OK)
-      PRINT_TO_USER(IN_AND_OUT_SENSORS, LCD_EMPTY);
-    }
-    else{
       flag = 1; // We have SD card available, but not configuration file and WiFi (SD Card OK & WiFi failure)
       PRINT_TO_USER(IN_SENSORS, LCD_EMPTY);
-    }
   }
   
   dht1.begin();
   dht2.begin();
+
+  Serial.println("flag = " + String(flag)+"/////////////////////////////////");
   
   switchoff();   
   delay(SYSTEM_BOOT_DELAY); // Delay to let system boot Wait before accessing Sensor  
@@ -201,7 +194,7 @@ void loop() {
 
     s1=0; s2=0; 
     avg1C=0; avg1H=0; avg2C=0; avg2H=0; DI_temp=0;
-    for(int i=0;i<readsperframe; i++){
+    for(int i=0;i<readspermin; i++){
         temp= dht1.readTemperature();
         hum = dht1.readHumidity();  
         temp2= dht2.readTemperature();          
@@ -221,7 +214,7 @@ void loop() {
           avg2H = avg2H + hum2;
           s2=s2+1;
         } 
-        delay(timeframe/readsperframe);//Wait n seconds before accessing sensor again.           
+        delay(timeframe/readspermin); // Wait n seconds before accessing sensor again.           
     }
 
     avg1C = avg1C/s1;
@@ -273,7 +266,7 @@ int write2TSData( String server, long TSChannel, unsigned int TSField1, float fi
     int writeSuccess = ThingSpeak.writeFields( TSChannel, writeAPIKey );
     if ( writeSuccess ){ 
       Serial.println( "Tmp: " + String(field1Data) + "C Hum: " + String(field2Data) + "% DI: " + String(field3Data) + " written to Thingspeak." );  
-    }
+    } 
     return writeSuccess;
   }
   
@@ -368,9 +361,9 @@ int readSD(){
 
   sscanf(buffer, "%ld", &timeframe);
 
-  get_setting_from_file(ini, SYSTEM_SETTINGS, "READS_PER_FRAME");
+  get_setting_from_file(ini, SYSTEM_SETTINGS, "READS_PER_MINUTE");
 
-  sscanf(buffer, "%d", &readsperframe);
+  sscanf(buffer, "%d", &readspermin);
 
   return 0;
 
@@ -497,7 +490,7 @@ void get_default_settings(){
   writeAPIKey = "";
   delay_time = 500;
   timeframe = 6000;
-  readsperframe = 10;
+  readspermin = 10;
 
   wifi_ssid="Test";
   wifi_pass="Test";
