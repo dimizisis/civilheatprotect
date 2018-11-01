@@ -65,7 +65,7 @@
 
 #define WIFI_MAX_WAITING_TIME 20000 // How much time we wait for WiFi connection
 #define SYSTEM_BOOT_DELAY 7000
-#define STANDARD_DELAY 3000
+#define STANDARD_DELAY_TIME 3000
 
 /* Serial Monitor messages definition */
 
@@ -87,10 +87,12 @@
 #define UNAVAILABLE_DHT11 "Sensor DHT11 unavailable..."
 #define UNAVAILABLE_DHT22 "Sensor DHT22 unavailable..."
 #define SENSORS_UNAVAILABLE "All sensors unavailable..."
-#define RESETTING "Please reset..."
+#define RESET "Please reset..."
 #define OUT_OF_BOUND_ERROR "Temperature or Humidity out of bounds"
 #define USING_DHT11 "Using DHT11 sensor..."
 #define USING_DHT22 "Using DHT22 sensor..."
+#define TEMPERATURE "Temperature (Celsius): " 
+#define HUMIDITY "Humidity: "
 
 /* LCD messages definition */
 
@@ -105,10 +107,12 @@
 #define LCD_UNAVAILABLE_DHT11 "DHT11 error..."
 #define LCD_UNAVAILABLE_DHT22 "DHT22 error..."
 #define LCD_SENSORS_UNAVAILABLE "Sensors error..."
-#define LCD_RESETTING "Reseting..."
+#define LCD_RESET "Reseting..."
 #define LCD_OUT_OF_BOUND_ERROR "Temp/Hum error"
 #define LCD_USING_DHT11 "Using DHT11..."
 #define LCD_USING_DHT22 "Using DHT22..."
+#define LCD_TEMPERATURE "TEMP (C): " 
+#define LCD_HUMIDITY "HUM (%): "
 #define LCD_EMPTY ""
 
 /* Macro Function for printing to user (Serial & LCD) */
@@ -128,7 +132,9 @@ const int Ld2_redPin= D4;
 int delay_time;
 long timeframe;
 int readspermin;
-int sensor_used=1; // By default we use sensor DHT22
+
+int main_sensor; // 1 for DHT22, 2 for DHT11. By default we use sensor DHT22
+int alternate_sensor; // 1 for DHT22, 2 for DHT11. By default we use sensor DHT11
 
 String wifi_ssid;
 String wifi_pass;
@@ -144,8 +150,7 @@ unsigned int df3 = 3;  // Data Field to write distress index data
 //Variables
 int flag; /* if SD card & WiFi OK, flag = 0
              if SD card OK, WiFi failed to connect, flag = 1
-             if SD card failed to initialize, WiFi OK, flag = 2
-             if SD card failed to initialize & WiFi failed to connect, flag = 3 */           
+             if SD card failed to initialize & WiFi failed to connect, flag = 2 */           
 int chk;
 float hum,hum2;  //Stores humidity value
 float temp,temp2; //Stores temperature value;
@@ -179,13 +184,13 @@ void setup() {
   else if (read_sd == 1) {
     get_default_settings();
     PRINT_TO_USER(DEFAULT_SETTINGS, LCD_DEFAULT_SETTINGS);
-    delay(STANDARD_DELAY);
+    delay(STANDARD_DELAY_TIME);
     flag = 3;
   }
   else{
     get_default_settings();
     PRINT_TO_USER(DEFAULT_SETTINGS, LCD_DEFAULT_SETTINGS);
-    delay(STANDARD_DELAY);
+    delay(STANDARD_DELAY_TIME);
       flag = 1; // We have SD card available, but not configuration file and WiFi (SD Card OK & WiFi failure)
       PRINT_TO_USER(IN_SENSORS, LCD_EMPTY);
   }
@@ -193,23 +198,26 @@ void setup() {
   dht1.begin();
   dht2.begin();
 
-  PRINT_TO_USER(USING_DHT22, LCD_USING_DHT22);
+  if (main_sensor == 1)
+    PRINT_TO_USER(USING_DHT22, LCD_USING_DHT22);
+  else if (main_sensor == 2)
+    PRINT_TO_USER(USING_DHT11, LCD_USING_DHT11);
   
   switchoff();   
   delay(SYSTEM_BOOT_DELAY); // Delay to let system boot Wait before accessing Sensor  
 }
 
 void loop() {
+      
+    int s1=0,s2=0;
+    float avg1C=0,avg1H=0,avg2C=0,avg2H=0,DI_temp=0;
 
   // If SD card & WiFi OK
   if (flag == 0){
 
-    int s1=0,s2=0;
-    float avg1C=0,avg1H=0,avg2C=0,avg2H=0,DI_temp=0;
-
-    if (sensor_used == 1){ 
+    if (main_sensor == 1){ 
       for(int i=0;i<readspermin; ++i){ 
-            if (sensor_used != 1) break;
+            if (main_sensor != 1) break;
             temp= dht1.readTemperature();
             hum = dht1.readHumidity();
             if ((!isnan(temp) && !isnan(hum))) {
@@ -220,24 +228,24 @@ void loop() {
               }
               else{
                 PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR);
-                sensor_used = 2;
-                delay(STANDARD_DELAY);
+                main_sensor = 2;
+                delay(STANDARD_DELAY_TIME);
                 PRINT_TO_USER(USING_DHT11, LCD_USING_DHT11);
-                delay(STANDARD_DELAY);
+                delay(STANDARD_DELAY_TIME);
               }
             }else{
               PRINT_TO_USER(UNAVAILABLE_DHT22, LCD_UNAVAILABLE_DHT22);
-              sensor_used = 2;
-              delay(STANDARD_DELAY);
+              main_sensor = 2;
+              delay(STANDARD_DELAY_TIME);
               PRINT_TO_USER(USING_DHT11, LCD_USING_DHT11);
-              delay(STANDARD_DELAY);
+              delay(STANDARD_DELAY_TIME);
             }
             delay(timeframe/readspermin); // Wait n seconds before accessing sensor again.   
       }
     }
-    if (sensor_used == 2){
+    if (main_sensor == 2){
       for(int i=0;i<readspermin; ++i){  
-          if (sensor_used != 2) break;
+          if (main_sensor != 2) break;
           temp2= dht2.readTemperature();          
           hum2 = dht2.readHumidity();
           if ((!isnan(temp2) && !isnan(hum2))) {
@@ -248,72 +256,170 @@ void loop() {
               }
               else{
                 PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR);
-                sensor_used = -1;
-                delay(STANDARD_DELAY);
+                main_sensor = -1;
+                delay(STANDARD_DELAY_TIME);
               }
           }else{
             PRINT_TO_USER(UNAVAILABLE_DHT11, LCD_UNAVAILABLE_DHT11);
-            sensor_used = -1;
-            delay(STANDARD_DELAY);
+            main_sensor = -1;
+            delay(STANDARD_DELAY_TIME);
           }
           delay(timeframe/readspermin); // Wait n seconds before accessing sensor again.    
        }        
     }
-    if (sensor_used==1){
+    if (main_sensor==1){
       avg1C /= s1;
       avg1H /= s1;
       DI_temp= round(avg1C - 0.55 * (1 - 0.01 * avg1H) * (avg1C - 14.5));
 
       PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
       PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY);
-      print_temphum(avg1C,avg1H);
+      PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE);
+      print_to_user(String(avg1C), String(avg1C));
+      delay(STANDARD_DELAY_TIME);
+//      lcd.clear();
+      PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY);
+      print_to_user(String(avg1H), String(avg1H));
     }
-    else if (sensor_used==2){
+    else if (main_sensor==2){
       avg2C /= s2;
       avg2H /= s2;
       DI_temp= round(avg2C - 0.55 * (1 - 0.01 * avg2H) * (avg2C - 14.5));
 
       PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
       PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY);
-      print_temphum(avg2C,avg2H);
+      PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE);
+      print_to_user(String(avg2C), String(avg2C));
+      delay(STANDARD_DELAY_TIME);
+//      lcd.clear();
+      PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY);
+      print_to_user(String(avg2H), String(avg2H));
     }
     else{
       PRINT_TO_USER(SENSORS_UNAVAILABLE, LCD_SENSORS_UNAVAILABLE);
-      delay(STANDARD_DELAY);
-      PRINT_TO_USER(RESETTING, LCD_RESETTING);
-      delay(STANDARD_DELAY);
+      delay(STANDARD_DELAY_TIME);
+      PRINT_TO_USER(RESET, LCD_RESET);
+      delay(STANDARD_DELAY_TIME);
       exit(1);
     }
     
-      PRINT_TO_USER(OUT_CONDITIONS, LCD_EMPTY);
-      print_temphum(avg2C-2,avg2H-2);
+    PRINT_TO_USER(OUT_CONDITIONS, LCD_EMPTY);
+    PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE);
+    print_to_user(String(avg1C-2), String(avg1C-3));
+    delay(STANDARD_DELAY_TIME);
+//      lcd.clear();
+    PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY);
+    print_to_user(String(avg1H-2), String(avg1H-3));
       
-      if (sensor_used != -1){ 
+      if (main_sensor != -1){ 
         int DI = calc_DI(DI_temp);
- //     write_data_to_server( iot_server, channelID , df1, avg1C , df2, avg1H , df3 ,DI ); 
+//      write_data_to_server( iot_server, channelID , df1, avg1C , df2, avg1H , df3 ,DI ); 
         led_status(DI);
       }
-      
   }
 
   // If SD card OK, WiFi failed to connect
   else if (flag == 1){
-
     
-  }
-
-  // If SD card failed to initialize, WiFi OK
-  else if (flag == 2){
-    
-
     
   }
   
- // If SD card failed to initialize & WiFi failed to connect
+  // If SD card failed to initialize & WiFi failed to connect
   else{
-    
 
-    
+    if (main_sensor == 1){ 
+      for(int i=0;i<readspermin; ++i){ 
+            if (main_sensor != 1) break;
+            temp= dht1.readTemperature();
+            hum = dht1.readHumidity();
+            if ((!isnan(temp) && !isnan(hum))) {
+              if ((temp >= -40 && temp <= 80) && (hum >= 0 && hum <= 100)){
+                avg1C += temp;
+                avg1H += hum;
+                ++s1;
+              }
+              else{
+                PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR);
+                main_sensor = 2;
+                delay(STANDARD_DELAY_TIME);
+                PRINT_TO_USER(USING_DHT11, LCD_USING_DHT11);
+                delay(STANDARD_DELAY_TIME);
+              }
+            }else{
+              PRINT_TO_USER(UNAVAILABLE_DHT22, LCD_UNAVAILABLE_DHT22);
+              main_sensor = 2;
+              delay(STANDARD_DELAY_TIME);
+              PRINT_TO_USER(USING_DHT11, LCD_USING_DHT11);
+              delay(STANDARD_DELAY_TIME);
+            }
+            delay(timeframe/readspermin); // Wait n seconds before accessing sensor again.   
+      }
+    }
+    if (main_sensor == 2){
+      for(int i=0;i<readspermin; ++i){  
+          if (main_sensor != 2) break;
+          temp2= dht2.readTemperature();          
+          hum2 = dht2.readHumidity();
+          if ((!isnan(temp2) && !isnan(hum2))) {
+              if ((temp2 >= 0 && temp2 <= 50) && (hum2 >= 20 && hum2 <= 90)){
+                avg2C += temp2;
+                avg2H += hum2;
+                ++s2;
+              }
+              else{
+                PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR);
+                main_sensor = -1;
+                delay(STANDARD_DELAY_TIME);
+              }
+          }else{
+            PRINT_TO_USER(UNAVAILABLE_DHT11, LCD_UNAVAILABLE_DHT11);
+            main_sensor = -1;
+            delay(STANDARD_DELAY_TIME);
+          }
+          delay(timeframe/readspermin); // Wait n seconds before accessing sensor again.    
+       }        
+    }
+    if (main_sensor==1){
+      avg1C /= s1;
+      avg1H /= s1;
+      DI_temp= round(avg1C - 0.55 * (1 - 0.01 * avg1H) * (avg1C - 14.5));
+
+      PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
+      PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY);
+      PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE);
+      print_to_user(String(avg1C), String(avg1C));
+      delay(STANDARD_DELAY_TIME);
+//      lcd.clear();
+      PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY);
+      print_to_user(String(avg1H), String(avg1H));
+    }
+    else if (main_sensor==2){
+      avg2C /= s2;
+      avg2H /= s2;
+      DI_temp= round(avg2C - 0.55 * (1 - 0.01 * avg2H) * (avg2C - 14.5));
+
+      PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
+      PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY);
+      PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE);
+      print_to_user(String(avg2C), String(avg2C));
+      delay(STANDARD_DELAY_TIME);
+//      lcd.clear();
+      PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY);
+      print_to_user(String(avg2H), String(avg2H));
+    }
+    else{
+      PRINT_TO_USER(SENSORS_UNAVAILABLE, LCD_SENSORS_UNAVAILABLE);
+      delay(STANDARD_DELAY_TIME);
+      PRINT_TO_USER(RESET, LCD_RESET);
+      delay(STANDARD_DELAY_TIME);
+      exit(1);
+    }
+      
+      if (main_sensor != -1){ 
+        int DI = calc_DI(DI_temp);
+//      write_data_to_server( iot_server, channelID , df1, avg1C , df2, avg1H , df3 ,DI ); 
+        led_status(DI);
+      }
   }
 }
 
@@ -427,6 +533,14 @@ int readSD(){
 
   sscanf(buffer, "%d", &readspermin);
 
+  get_setting_from_file(ini, SYSTEM_SETTINGS, "MAIN_SENSOR_TYPE");
+
+  main_sensor = get_sensor_num();
+
+  get_setting_from_file(ini, SYSTEM_SETTINGS, "ALTERNATE_SENSOR_TYPE");
+
+  alternate_sensor = get_sensor_num();
+  
   return 0;
 
 //  myFile = SD.open(CONFIGURATION_FILENAME);
@@ -447,7 +561,26 @@ int readSD(){
   return true;
 }
 
+int get_sensor_num(){
+
+  int sensor_num;
+
+  /* 
+   *  Returns 1 if sensor is DHT22
+   *  Returns 2 if sensor is DHT11
+   */
+  
+  if (String(buffer) == "DHT22")
+    sensor_num = 1;
+  else if (String(buffer) == "DHT11")
+    sensor_num = 2;
+
+  return sensor_num;
+}
+
 void get_setting_from_file(IniFile ini, char* section, char* entry){
+
+  /* Gets entry's value from specific section of config file */
 
   if (ini.getValue(section, entry, buffer, BUFFER_SIZE)) {
     Serial.print("section " + String(section) + " has an entry " + String(entry) +" with value ");
@@ -486,36 +619,27 @@ bool   wificonnect(){
   return connected;
 }
 
-void print_temphum(float temp, float hum){
-    Serial.print("Current humidity = ");
-    Serial.print(hum);
-    Serial.print("%  ");
-    Serial.print("temperature = ");
-    Serial.print(temp); 
-    Serial.println("C  ");   
-}
-
 void led_status(int DI){
 
-if (DI==1){
-  setColor1(0, 255, 0);   // Green Color
-  setColor2(LOW);           // No Color    
-}else if (DI==2){  
-  setColor1(0, 0, 255); // Blue Color
-  setColor2(LOW);         // No Color 
-}else if (DI==3){ 
-  setColor1(255, 0, 0); // Red Color
-  setColor2(LOW);         // No Color 
-}else if (DI==4){     
-  setColor1(0, 255, 0);   // Green Color
-  setColor2(HIGH);         // Red Color    
- }else if (DI==5){  
-  setColor1(0, 0, 255);   // Blue Color
-  setColor2(HIGH);         // Red Color 
-}else if (DI==6){ 
-  setColor1(255, 0, 0);   // Red Color
-  setColor2(HIGH);         // Red Color 
-} 
+  if (DI==1){
+    setColor1(0, 255, 0);   // Green Color
+    setColor2(LOW);           // No Color    
+  }else if (DI==2){  
+    setColor1(0, 0, 255); // Blue Color
+    setColor2(LOW);         // No Color 
+  }else if (DI==3){ 
+    setColor1(255, 0, 0); // Red Color
+    setColor2(LOW);         // No Color 
+  }else if (DI==4){     
+    setColor1(0, 255, 0);   // Green Color
+    setColor2(HIGH);         // Red Color    
+  }else if (DI==5){  
+    setColor1(0, 0, 255);   // Blue Color
+    setColor2(HIGH);         // Red Color 
+  }else if (DI==6){ 
+    setColor1(255, 0, 0);   // Red Color
+    setColor2(HIGH);         // Red Color 
+  } 
   delay(delay_time); 
   //switchoff();
 }
@@ -537,7 +661,10 @@ void setColor2(int redValue) {
 }
 
 void print_to_user(String serial_message, String lcd_message){
-  if (serial_message == IN_CONDITIONS || serial_message == OUT_CONDITIONS || serial_message == DOT || serial_message == ACCESSING_WIFI)
+
+  /* Prints messages to serial & arduino's LCD */
+  
+  if (serial_message == TEMPERATURE || serial_message == HUMIDITY || serial_message == IN_CONDITIONS || serial_message == OUT_CONDITIONS || serial_message == DOT || serial_message == ACCESSING_WIFI)
     Serial.print(serial_message);
   else
     Serial.println(serial_message);
@@ -547,18 +674,26 @@ void print_to_user(String serial_message, String lcd_message){
 }
 
 void get_default_settings(){
+
+  /* Get default settings, if SD fails */
+  
   iot_server = "ThingSpeak";
   channelID = 0;
-  writeAPIKey = "";
+  writeAPIKey = "0";
   delay_time = 500;
   timeframe = 6000;
   readspermin = 10;
+  main_sensor = 1;
+  alternate_sensor = 2;
 
   wifi_ssid="Test";
   wifi_pass="Test";
 }
 
 void print_config_file_error(uint8_t e, bool eol){
+
+  /* Prints exact error when config file fails to open */
+  
   switch (e) {
   case IniFile::errorNoError:
     Serial.print("no error");
