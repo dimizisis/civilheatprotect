@@ -65,6 +65,7 @@
 
 #define WIFI_MAX_WAITING_TIME 20000 // How much time we wait for WiFi connection
 #define SYSTEM_BOOT_DELAY 7000
+#define STANDARD_DELAY 3000
 
 /* Serial Monitor messages definition */
 
@@ -83,6 +84,13 @@
 #define IN_AND_OUT_SENSORS "IN-house and Outdoor Humidity & temperature Sensors"
 #define CONFIG_FILE_NOT_EXIST "Configuration file doesn't seem to exist."
 #define DEFAULT_SETTINGS "Using Default Settings..."
+#define UNAVAILABLE_DHT11 "Sensor DHT11 unavailable..."
+#define UNAVAILABLE_DHT22 "Sensor DHT22 unavailable..."
+#define SENSORS_UNAVAILABLE "All sensors unavailable..."
+#define RESETTING "Please reset..."
+#define OUT_OF_BOUND_ERROR "Temperature or Humidity out of bounds"
+#define USING_DHT11 "Using DHT11 sensor..."
+#define USING_DHT22 "Using DHT22 sensor..."
 
 /* LCD messages definition */
 
@@ -94,6 +102,13 @@
 #define LCD_SD_CARD_NOT_INITIALIZED "SD failed"
 #define LCD_CONFIG_FILE_NOT_EXIST "config.ini Fail"
 #define LCD_DEFAULT_SETTINGS "Default Settings"
+#define LCD_UNAVAILABLE_DHT11 "DHT11 error..."
+#define LCD_UNAVAILABLE_DHT22 "DHT22 error..."
+#define LCD_SENSORS_UNAVAILABLE "Sensors error..."
+#define LCD_RESETTING "Reseting..."
+#define LCD_OUT_OF_BOUND_ERROR "Temp/Hum error"
+#define LCD_USING_DHT11 "Using DHT11..."
+#define LCD_USING_DHT22 "Using DHT22..."
 #define LCD_EMPTY ""
 
 /* Macro Function for printing to user (Serial & LCD) */
@@ -113,6 +128,7 @@ const int Ld2_redPin= D4;
 int delay_time;
 long timeframe;
 int readspermin;
+int sensor_used=1; // By default we use sensor DHT22
 
 String wifi_ssid;
 String wifi_pass;
@@ -159,17 +175,17 @@ void setup() {
       flag = 1;
       PRINT_TO_USER(IN_SENSORS, LCD_EMPTY);
     }
-  } 
+  }  
   else if (read_sd == 1) {
     get_default_settings();
     PRINT_TO_USER(DEFAULT_SETTINGS, LCD_DEFAULT_SETTINGS);
-    delay(3000);
+    delay(STANDARD_DELAY);
     flag = 3;
   }
   else{
     get_default_settings();
     PRINT_TO_USER(DEFAULT_SETTINGS, LCD_DEFAULT_SETTINGS);
-    delay(3000);
+    delay(STANDARD_DELAY);
       flag = 1; // We have SD card available, but not configuration file and WiFi (SD Card OK & WiFi failure)
       PRINT_TO_USER(IN_SENSORS, LCD_EMPTY);
   }
@@ -177,61 +193,107 @@ void setup() {
   dht1.begin();
   dht2.begin();
 
-  Serial.println("flag = " + String(flag)+"/////////////////////////////////");
+  PRINT_TO_USER(USING_DHT22, LCD_USING_DHT22);
   
   switchoff();   
   delay(SYSTEM_BOOT_DELAY); // Delay to let system boot Wait before accessing Sensor  
-
 }
 
 void loop() {
 
   // If SD card & WiFi OK
   if (flag == 0){
-    
-    int s1,s2;
-    float avg1C,avg1H,avg2C,avg2H,DI_temp;
 
-    s1=0; s2=0; 
-    avg1C=0; avg1H=0; avg2C=0; avg2H=0; DI_temp=0;
-    for(int i=0;i<readspermin; i++){
-        temp= dht1.readTemperature();
-        hum = dht1.readHumidity();  
-        temp2= dht2.readTemperature();          
-        hum2 = dht2.readHumidity();
-        if (isnan(temp)||isnan(hum)) {
-           return;
-        }else{
-          avg1C = avg1C + temp;
-          avg1H = avg1H + hum;
-          s1=s1+1;
-        } 
-       
-        if (isnan(temp2)||isnan(hum2)) {
-          return;
-        }else{
-          avg2C = avg2C + temp2;
-          avg2H = avg2H + hum2;
-          s2=s2+1;
-        } 
-        delay(timeframe/readspermin); // Wait n seconds before accessing sensor again.           
+    int s1=0,s2=0;
+    float avg1C=0,avg1H=0,avg2C=0,avg2H=0,DI_temp=0;
+
+    if (sensor_used == 1){ 
+      for(int i=0;i<readspermin; ++i){ 
+            if (sensor_used != 1) break;
+            temp= dht1.readTemperature();
+            hum = dht1.readHumidity();
+            if ((!isnan(temp) && !isnan(hum))) {
+              if ((temp >= -40 && temp <= 80) && (hum >= 0 && hum <= 100)){
+                avg1C += temp;
+                avg1H += hum;
+                ++s1;
+              }
+              else{
+                PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR);
+                sensor_used = 2;
+                delay(STANDARD_DELAY);
+                PRINT_TO_USER(USING_DHT11, LCD_USING_DHT11);
+                delay(STANDARD_DELAY);
+              }
+            }else{
+              PRINT_TO_USER(UNAVAILABLE_DHT22, LCD_UNAVAILABLE_DHT22);
+              sensor_used = 2;
+              delay(STANDARD_DELAY);
+              PRINT_TO_USER(USING_DHT11, LCD_USING_DHT11);
+              delay(STANDARD_DELAY);
+            }
+            delay(timeframe/readspermin); // Wait n seconds before accessing sensor again.   
+      }
     }
+    if (sensor_used == 2){
+      for(int i=0;i<readspermin; ++i){  
+          if (sensor_used != 2) break;
+          temp2= dht2.readTemperature();          
+          hum2 = dht2.readHumidity();
+          if ((!isnan(temp2) && !isnan(hum2))) {
+              if ((temp2 >= 0 && temp2 <= 50) && (hum2 >= 20 && hum2 <= 90)){
+                avg2C += temp2;
+                avg2H += hum2;
+                ++s2;
+              }
+              else{
+                PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR);
+                sensor_used = -1;
+                delay(STANDARD_DELAY);
+              }
+          }else{
+            PRINT_TO_USER(UNAVAILABLE_DHT11, LCD_UNAVAILABLE_DHT11);
+            sensor_used = -1;
+            delay(STANDARD_DELAY);
+          }
+          delay(timeframe/readspermin); // Wait n seconds before accessing sensor again.    
+       }        
+    }
+    if (sensor_used==1){
+      avg1C /= s1;
+      avg1H /= s1;
+      DI_temp= round(avg1C - 0.55 * (1 - 0.01 * avg1H) * (avg1C - 14.5));
 
-    avg1C = avg1C/s1;
-    avg1H = avg1H/s1;
-    avg2C = avg2C/s2;
-    avg2H = avg2H/s2;
-    DI_temp= round(avg1C - 0.55 * (1 - 0.01 * avg1H) * (avg1C - 14.5));
-        
-   // Read data and store it to variables hum and temp 
-    PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
-    PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY);
-    print_temphum(avg1C,avg1H);
-    PRINT_TO_USER(OUT_CONDITIONS, LCD_EMPTY);
-    print_temphum(avg2C,avg2H); 
-    int DI = calc_DI(DI_temp);
- //   write2TSData( iot_server, channelID , df1, avg1C , df2, avg1H , df3 ,DI ); 
-    led_status(DI);
+      PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
+      PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY);
+      print_temphum(avg1C,avg1H);
+    }
+    else if (sensor_used==2){
+      avg2C /= s2;
+      avg2H /= s2;
+      DI_temp= round(avg2C - 0.55 * (1 - 0.01 * avg2H) * (avg2C - 14.5));
+
+      PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
+      PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY);
+      print_temphum(avg2C,avg2H);
+    }
+    else{
+      PRINT_TO_USER(SENSORS_UNAVAILABLE, LCD_SENSORS_UNAVAILABLE);
+      delay(STANDARD_DELAY);
+      PRINT_TO_USER(RESETTING, LCD_RESETTING);
+      delay(STANDARD_DELAY);
+      exit(1);
+    }
+    
+      PRINT_TO_USER(OUT_CONDITIONS, LCD_EMPTY);
+      print_temphum(avg2C-2,avg2H-2);
+      
+      if (sensor_used != -1){ 
+        int DI = calc_DI(DI_temp);
+ //     write_data_to_server( iot_server, channelID , df1, avg1C , df2, avg1H , df3 ,DI ); 
+        led_status(DI);
+      }
+      
   }
 
   // If SD card OK, WiFi failed to connect
@@ -255,15 +317,15 @@ void loop() {
   }
 }
 
-//use this function if you want multiple fields simultaneously
-int write2TSData( String server, long TSChannel, unsigned int TSField1, float field1Data, unsigned int TSField2, float field2Data, unsigned int TSField3, long field3Data ){
+// use this function if you want multiple fields simultaneously
+int write_data_to_server( String server, long channel, unsigned int field1, float field1Data, unsigned int field2, float field2Data, unsigned int field3, long field3Data ){
 
   if ( server == "ThingSpeak" ){
-    ThingSpeak.setField( TSField1, field1Data );
-    ThingSpeak.setField( TSField2, field2Data );
-    ThingSpeak.setField( TSField3, field3Data );
+    ThingSpeak.setField( field1, field1Data );
+    ThingSpeak.setField( field2, field2Data );
+    ThingSpeak.setField( field3, field3Data );
    
-    int writeSuccess = ThingSpeak.writeFields( TSChannel, writeAPIKey );
+    int writeSuccess = ThingSpeak.writeFields( channel, writeAPIKey );
     if ( writeSuccess ){ 
       Serial.println( "Tmp: " + String(field1Data) + "C Hum: " + String(field2Data) + "% DI: " + String(field3Data) + " written to Thingspeak." );  
     } 
