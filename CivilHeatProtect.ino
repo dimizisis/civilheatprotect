@@ -143,6 +143,11 @@ WiFiClient client;
 long channelID;
 String iot_server;
 char* writeAPIKey;
+// Weather API information
+char weather_server[80];
+String weather_api_key;
+uint32_t postal_code;
+String location="thessaloniki,GR"; // Temp, from SD card postal code the original...
 unsigned int df1 = 1;  // Data Field to write temperature data
 unsigned int df2 = 2;  // Data Field to write Humidity data
 unsigned int df3 = 3;  // Data Field to write distress index data
@@ -235,7 +240,7 @@ void loop() {
               }
             }else{
               PRINT_TO_USER(UNAVAILABLE_DHT22, LCD_UNAVAILABLE_DHT22);
-              main_sensor = 2;
+              main_sensor = 2; // Make DHT11 main sensor (DHT22 not available)
               delay(STANDARD_DELAY_TIME);
               PRINT_TO_USER(USING_DHT11, LCD_USING_DHT11);
               delay(STANDARD_DELAY_TIME);
@@ -261,7 +266,7 @@ void loop() {
               }
           }else{
             PRINT_TO_USER(UNAVAILABLE_DHT11, LCD_UNAVAILABLE_DHT11);
-            main_sensor = -1;
+            main_sensor = -1; // -1 if none of sensors are available
             delay(STANDARD_DELAY_TIME);
           }
           delay(timeframe/readspermin); // Wait n seconds before accessing sensor again.    
@@ -540,7 +545,19 @@ int readSD(){
   get_setting_from_file(ini, SYSTEM_SETTINGS, "ALTERNATE_SENSOR_TYPE");
 
   alternate_sensor = get_sensor_num();
-  
+
+  get_setting_from_file(ini, USER_SETTINGS, "WEATHER_API_KEY");
+
+  weather_api_key = String(buffer);
+
+  get_setting_from_file(ini, USER_SETTINGS, "WEATHER_API_SERVER_LINK");
+
+  strcpy(weather_server, buffer);
+
+  get_setting_from_file(ini, USER_SETTINGS, "POSTAL_CODE");
+
+  sscanf(buffer, "%d", &postal_code);
+
   return 0;
 
 //  myFile = SD.open(CONFIGURATION_FILENAME);
