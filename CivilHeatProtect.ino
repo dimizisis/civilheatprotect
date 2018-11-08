@@ -6,6 +6,7 @@
 #include <ESP8266WiFi.h>
 #include <ThingSpeak.h>
 #include <IniFile.h>
+#include <ArduinoJson.h>
 
 //Constants ARDUINO UNO
 /*
@@ -146,7 +147,7 @@ char* writeAPIKey;
 // Weather API information
 char weather_server[80];
 String weather_api_key;
-uint32_t postal_code;
+String city_id;
 String location="thessaloniki,GR"; // Temp, from SD card postal code the original...
 unsigned int df1 = 1;  // Data Field to write temperature data
 unsigned int df2 = 2;  // Data Field to write Humidity data
@@ -214,8 +215,28 @@ void setup() {
 
 void loop() {
       
-    int s1=0,s2=0;
-    float avg1C=0,avg1H=0,avg2C=0,avg2H=0,DI_temp=0;
+    float avg1C=0,avg1H=0,avg2C=0,avg2H=0;
+    bool sensor_success=false;
+    int DI;
+
+    sensor_success = get_data_from_sensors(flag, &avg1C, &avg2C, &avg1H, &avg2H, &DI); 
+
+    if (!sensor_success)
+      exit(1);
+
+    delay(STANDARD_DELAY_TIME);
+
+    if (flag==0){
+//      write_data_to_server( iot_server, channelID , df1, avg1C , df2, avg1H , df3 ,DI ); 
+    }
+
+  
+}
+
+bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H, float * avg2H, int * DI){
+
+  int s1=0,s2=0;
+  int DI_temp=0;
 
   // If SD card & WiFi OK
   if (flag == 0){
@@ -227,8 +248,8 @@ void loop() {
             hum = dht1.readHumidity();
             if ((!isnan(temp) && !isnan(hum))) {
               if ((temp >= -40 && temp <= 80) && (hum >= 0 && hum <= 100)){
-                avg1C += temp;
-                avg1H += hum;
+                (*avg1C) += temp;
+                (*avg1H) += hum;
                 ++s1;
               }
               else{
@@ -255,8 +276,8 @@ void loop() {
           hum2 = dht2.readHumidity();
           if ((!isnan(temp2) && !isnan(hum2))) {
               if ((temp2 >= 0 && temp2 <= 50) && (hum2 >= 20 && hum2 <= 90)){
-                avg2C += temp2;
-                avg2H += hum2;
+                (*avg2C) += temp2;
+                (*avg2H) += hum2;
                 ++s2;
               }
               else{
@@ -273,54 +294,54 @@ void loop() {
        }        
     }
     if (main_sensor==1){
-      avg1C /= s1;
-      avg1H /= s1;
-      DI_temp= round(avg1C - 0.55 * (1 - 0.01 * avg1H) * (avg1C - 14.5));
+      (*avg1C) /= s1;
+      (*avg1H) /= s1;
+      DI_temp= round((*avg1C) - 0.55 * (1 - 0.01 * (*avg1H)) * ((*avg1C) - 14.5));
 
       PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
       PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY);
       PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE);
-      print_to_user(String(avg1C), String(avg1C));
+      print_to_user(String((*avg1C)), String((*avg1C)));
       delay(STANDARD_DELAY_TIME);
 //      lcd.clear();
       PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY);
-      print_to_user(String(avg1H), String(avg1H));
+      print_to_user(String((*avg1H)), String((*avg1H)));
     }
     else if (main_sensor==2){
-      avg2C /= s2;
-      avg2H /= s2;
-      DI_temp= round(avg2C - 0.55 * (1 - 0.01 * avg2H) * (avg2C - 14.5));
+      (*avg2C) /= s2;
+      (*avg2H) /= s2;
+      DI_temp= round((*avg2C) - 0.55 * (1 - 0.01 * (*avg2H)) * ((*avg2C) - 14.5));
 
       PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
       PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY);
       PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE);
-      print_to_user(String(avg2C), String(avg2C));
+      print_to_user(String((*avg2C)), String((*avg2C)));
       delay(STANDARD_DELAY_TIME);
 //      lcd.clear();
       PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY);
-      print_to_user(String(avg2H), String(avg2H));
+      print_to_user(String((*avg2H)), String((*avg2H)));
     }
     else{
       PRINT_TO_USER(SENSORS_UNAVAILABLE, LCD_SENSORS_UNAVAILABLE);
       delay(STANDARD_DELAY_TIME);
       PRINT_TO_USER(RESET, LCD_RESET);
       delay(STANDARD_DELAY_TIME);
-      exit(1);
+      return false;
     }
     
     PRINT_TO_USER(OUT_CONDITIONS, LCD_EMPTY);
     PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE);
-    print_to_user(String(avg1C-2), String(avg1C-3));
+    print_to_user(String((*avg1C)-2), String((*avg1C)-3));
     delay(STANDARD_DELAY_TIME);
 //      lcd.clear();
     PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY);
-    print_to_user(String(avg1H-2), String(avg1H-3));
+    print_to_user(String((*avg1H)-2), String((*avg1H)-3));
       
-      if (main_sensor != -1){ 
-        int DI = calc_DI(DI_temp);
-//      write_data_to_server( iot_server, channelID , df1, avg1C , df2, avg1H , df3 ,DI ); 
-        led_status(DI);
-      }
+    *DI = calc_DI(DI_temp);
+//      write_data_to_server( iot_server, channelID , df1, (*avg1C) , df2, (*avg1H) , df3 ,DI ); 
+    led_status(*DI);
+    return true;
+    
   }
 
   // If SD card OK, WiFi failed to connect
@@ -339,8 +360,8 @@ void loop() {
             hum = dht1.readHumidity();
             if ((!isnan(temp) && !isnan(hum))) {
               if ((temp >= -40 && temp <= 80) && (hum >= 0 && hum <= 100)){
-                avg1C += temp;
-                avg1H += hum;
+                (*avg1C) += temp;
+                (*avg1H) += hum;
                 ++s1;
               }
               else{
@@ -367,8 +388,8 @@ void loop() {
           hum2 = dht2.readHumidity();
           if ((!isnan(temp2) && !isnan(hum2))) {
               if ((temp2 >= 0 && temp2 <= 50) && (hum2 >= 20 && hum2 <= 90)){
-                avg2C += temp2;
-                avg2H += hum2;
+                (*avg2C) += temp2;
+                (*avg2H) += hum2;
                 ++s2;
               }
               else{
@@ -385,47 +406,47 @@ void loop() {
        }        
     }
     if (main_sensor==1){
-      avg1C /= s1;
-      avg1H /= s1;
-      DI_temp= round(avg1C - 0.55 * (1 - 0.01 * avg1H) * (avg1C - 14.5));
+      (*avg1C) /= s1;
+      (*avg1H) /= s1;
+      DI_temp= round(((*avg1C) - 0.55 * (1 - 0.01 * (*avg1H)) * (*avg1C) - 14.5));
 
       PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
       PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY);
       PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE);
-      print_to_user(String(avg1C), String(avg1C));
+      print_to_user(String((*avg1C)), String((*avg1C)));
       delay(STANDARD_DELAY_TIME);
 //      lcd.clear();
       PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY);
-      print_to_user(String(avg1H), String(avg1H));
+      print_to_user(String((*avg1H)), String((*avg1H)));
     }
     else if (main_sensor==2){
-      avg2C /= s2;
-      avg2H /= s2;
-      DI_temp= round(avg2C - 0.55 * (1 - 0.01 * avg2H) * (avg2C - 14.5));
+      (*avg2C) /= s2;
+      (*avg2H) /= s2;
+      DI_temp= round((*avg2C) - 0.55 * (1 - 0.01 * (*avg2H)) * ((*avg2C) - 14.5));
 
       PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
       PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY);
       PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE);
-      print_to_user(String(avg2C), String(avg2C));
+      print_to_user(String((*avg2C)), String((*avg2C)));
       delay(STANDARD_DELAY_TIME);
 //      lcd.clear();
       PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY);
-      print_to_user(String(avg2H), String(avg2H));
+      print_to_user(String((*avg2H)), String((*avg2H)));
     }
     else{
       PRINT_TO_USER(SENSORS_UNAVAILABLE, LCD_SENSORS_UNAVAILABLE);
       delay(STANDARD_DELAY_TIME);
       PRINT_TO_USER(RESET, LCD_RESET);
       delay(STANDARD_DELAY_TIME);
-      exit(1);
+      return false;
     }
       
-      if (main_sensor != -1){ 
-        int DI = calc_DI(DI_temp);
-//      write_data_to_server( iot_server, channelID , df1, avg1C , df2, avg1H , df3 ,DI ); 
-        led_status(DI);
-      }
+    *DI = calc_DI(DI_temp);
+//      write_data_to_server( iot_server, channelID , df1, (*avg1C) , df2, (*avg1H) , df3 ,DI ); 
+    led_status(*DI);
+    return true;
   }
+  
 }
 
 // use this function if you want multiple fields simultaneously
@@ -554,9 +575,9 @@ int readSD(){
 
   strcpy(weather_server, buffer);
 
-  get_setting_from_file(ini, USER_SETTINGS, "POSTAL_CODE");
+  get_setting_from_file(ini, USER_SETTINGS, "CITY_ID");
 
-  sscanf(buffer, "%d", &postal_code);
+  city_id = String(buffer);
 
   return 0;
 
