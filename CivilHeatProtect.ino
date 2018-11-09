@@ -68,6 +68,20 @@
 #define SYSTEM_BOOT_DELAY 7000
 #define STANDARD_DELAY_TIME 3000
 
+/* Sensor Limits */
+
+#define DHT22_MAX_TEMP 80.00
+#define DHT22_MIN_TEMP -40.00
+
+#define DHT22_MAX_HUM 100.00
+#define DHT22_MIN_HUM 0.00
+
+#define DHT11_MAX_TEMP 50.00
+#define DHT11_MIN_TEMP 0.00
+
+#define DHT11_MAX_HUM 90.00
+#define DHT11_MIN_HUM 20.00
+
 /* Serial Monitor messages definition */
 
 #define SEPARATOR "=============================="
@@ -138,7 +152,7 @@ const int Ld1_redPin=D3;
 const int Ld2_redPin= D4;
 int delay_time;
 long timeframe;
-int readspermin;
+int readsperframe;
 
 int main_sensor; // 1 for DHT22, 2 for DHT11. By default we use sensor DHT22
 int alternate_sensor; // 1 for DHT22, 2 for DHT11. By default we use sensor DHT11
@@ -245,17 +259,46 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
 
   int s1=0,s2=0;
   int DI_temp=0;
+  float min_temp=DHT22_MAX_TEMP;
+  float max_temp=DHT22_MIN_TEMP;
+  float min_hum=DHT22_MAX_HUM;
+  float max_hum=DHT22_MIN_HUM;
+  float min_temp2=DHT11_MAX_TEMP;
+  float max_temp2=DHT11_MIN_TEMP;
+  float min_hum2=DHT11_MAX_HUM;
+  float max_hum2=DHT11_MIN_HUM;
 
   // If SD card & WiFi OK
   if (flag == 0){
 
     if (main_sensor == 1){
-      for(int i=0;i<readspermin; ++i){
-            if (main_sensor != 1) break;
+      min_temp=DHT22_MAX_TEMP;
+      max_temp=DHT22_MIN_TEMP;
+      min_hum=DHT22_MAX_HUM;
+      max_hum=DHT22_MIN_HUM;
+      for(int i=0;i<readsperframe; ++i){
+        
+            if (main_sensor != 1) break; // If main sensor changed, break.
+            
             temp= dht1.readTemperature();
+            Serial.println("TEMP: "+String(temp));
+
+            if (min_temp > temp)
+              min_temp=temp;
+
+            if (max_temp < temp)
+              max_temp=temp;
+            
             hum = dht1.readHumidity();
+
+            if (min_hum > hum)
+              min_hum=temp;
+
+            if (max_hum < hum)
+              max_hum=hum;
+            
             if ((!isnan(temp) && !isnan(hum))) {
-              if ((temp >= -40 && temp <= 80) && (hum >= 0 && hum <= 100)){
+              if ((temp >= DHT22_MIN_TEMP && temp <= DHT22_MAX_TEMP) && (hum >= DHT22_MIN_HUM && hum <= DHT22_MAX_HUM)){
                 (*avg1C) += temp;
                 (*avg1H) += hum;
                 ++s1;
@@ -273,16 +316,37 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
               PRINT_TO_USER(USING_DHT11, LCD_USING_DHT11);
               delay(STANDARD_DELAY_TIME);
             }
-            delay(timeframe/readspermin); // Wait n seconds before accessing sensor again.
+            delay(timeframe/readsperframe); // Wait n seconds before accessing sensor again.
       }
     }
     if (main_sensor == 2){
-      for(int i=0;i<readspermin; ++i){
+      min_temp2=DHT11_MAX_TEMP;
+      max_temp2=DHT11_MIN_TEMP;
+      min_hum2=DHT11_MAX_HUM;
+      max_hum2=DHT11_MIN_HUM;
+      for(int i=0;i<readsperframe; ++i){
           if (main_sensor != 2) break;
           temp2= dht2.readTemperature();
+          Serial.println("TEMP2: "+String(temp2));
+
+          if (min_temp2 > temp2)
+              min_temp2=temp;
+
+            if (max_temp2 < temp2)
+              max_temp2=temp2;
+          
           hum2 = dht2.readHumidity();
+
+          if (min_hum2 > hum2)
+              min_hum2=temp2;
+
+            if (max_hum2 < hum2)
+              max_hum2=hum2;
+
+          Serial.println("MAX_TEMP2: "+String(max_temp2));
+          
           if ((!isnan(temp2) && !isnan(hum2))) {
-              if ((temp2 >= 0 && temp2 <= 50) && (hum2 >= 20 && hum2 <= 90)){
+              if ((temp2 >= DHT11_MIN_TEMP && temp2 <= DHT11_MAX_TEMP) && (hum2 >= DHT11_MIN_HUM && hum2 <= DHT11_MAX_HUM)){
                 (*avg2C) += temp2;
                 (*avg2H) += hum2;
                 ++s2;
@@ -297,10 +361,16 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
             main_sensor = -1; // -1 if none of sensors are available
             delay(STANDARD_DELAY_TIME);
           }
-          delay(timeframe/readspermin); // Wait n seconds before accessing sensor again.
+          delay(timeframe/readsperframe); // Wait n seconds before accessing sensor again.
        }
     }
     if (main_sensor==1){
+      /* Remove min & max temperature & humidity values from averages (for better sampling) */
+      (*avg1C) -= max_temp;
+      (*avg1C) -= min_temp;
+      (*avg1H) -= max_hum;
+      (*avg1H) -= min_hum;
+      s1 -= 2;
       (*avg1C) /= s1;
       (*avg1H) /= s1;
       DI_temp= round((*avg1C) - 0.55 * (1 - 0.01 * (*avg1H)) * ((*avg1C) - 14.5));
@@ -315,6 +385,14 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
       print_to_user(String((*avg1H)), String((*avg1H)));
     }
     else if (main_sensor==2){
+      /* Remove min & max temperature & humidity values from averages (for better sampling) */
+      Serial.println("avg2C (before): "+String((*avg2C)));
+      (*avg2C) -= max_temp2;
+      (*avg2C) -= min_temp2;
+      Serial.println("avg2C (after): "+String((*avg2C)));
+      (*avg2H) -= max_hum2;
+      (*avg2H) -= min_hum2;
+      s2 -= 2;
       (*avg2C) /= s2;
       (*avg2H) /= s2;
       DI_temp= round((*avg2C) - 0.55 * (1 - 0.01 * (*avg2H)) * ((*avg2C) - 14.5));
@@ -354,18 +432,37 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
     PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR);
 
     if (main_sensor == 1){
-      for(int i=0;i<readspermin; ++i){
-            if (main_sensor != 1) break;
+      min_temp=DHT22_MAX_TEMP;
+      max_temp=DHT22_MIN_TEMP;
+      min_hum=DHT22_MAX_HUM;
+      max_hum=DHT22_MIN_HUM;
+      for(int i=0;i<readsperframe; ++i){
+        
+            if (main_sensor != 1) break; // If main sensor changed, break.
+            
             temp= dht1.readTemperature();
+
+            if (min_temp > temp)
+              min_temp=temp;
+
+            if (max_temp < temp)
+              max_temp=temp;
+            
             hum = dht1.readHumidity();
+
+            if (min_hum > hum)
+              min_hum=temp;
+
+            if (max_hum < hum)
+              max_hum=hum;
+            
             if ((!isnan(temp) && !isnan(hum))) {
-              if ((temp >= -40 && temp <= 80) && (hum >= 0 && hum <= 100)){
+              if ((temp >= DHT22_MIN_TEMP && temp <= DHT22_MAX_TEMP) && (hum >= DHT22_MIN_HUM && hum <= DHT22_MAX_HUM)){
                 (*avg1C) += temp;
                 (*avg1H) += hum;
                 ++s1;
               }
               else{
-                PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR);
                 main_sensor = 2;
                 delay(STANDARD_DELAY_TIME);
                 PRINT_TO_USER(USING_DHT11, LCD_USING_DHT11);
@@ -373,21 +470,39 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
               }
             }else{
               PRINT_TO_USER(UNAVAILABLE_DHT22, LCD_UNAVAILABLE_DHT22);
-              main_sensor = 2;
+              main_sensor = 2; // Make DHT11 main sensor (DHT22 not available)
               delay(STANDARD_DELAY_TIME);
               PRINT_TO_USER(USING_DHT11, LCD_USING_DHT11);
               delay(STANDARD_DELAY_TIME);
             }
-            delay(timeframe/readspermin); // Wait n seconds before accessing sensor again.
+            delay(timeframe/readsperframe); // Wait n seconds before accessing sensor again.
       }
     }
     if (main_sensor == 2){
-      for(int i=0;i<readspermin; ++i){
+      min_temp2=DHT11_MAX_TEMP;
+      max_temp2=DHT11_MIN_TEMP;
+      min_hum2=DHT11_MAX_HUM;
+      max_hum2=DHT11_MIN_HUM;
+      for(int i=0;i<readsperframe; ++i){
           if (main_sensor != 2) break;
           temp2= dht2.readTemperature();
+
+          if (min_temp2 > temp2)
+              min_temp2=temp;
+
+            if (max_temp2 < temp2)
+              max_temp2=temp2;
+          
           hum2 = dht2.readHumidity();
+
+          if (min_hum2 > hum2)
+              min_hum2=temp2;
+
+            if (max_hum2 < hum2)
+              max_hum2=hum2;
+          
           if ((!isnan(temp2) && !isnan(hum2))) {
-              if ((temp2 >= 0 && temp2 <= 50) && (hum2 >= 20 && hum2 <= 90)){
+              if ((temp2 >= DHT11_MIN_TEMP && temp2 <= DHT11_MAX_TEMP) && (hum2 >= DHT11_MIN_HUM && hum2 <= DHT11_MAX_HUM)){
                 (*avg2C) += temp2;
                 (*avg2H) += hum2;
                 ++s2;
@@ -399,13 +514,19 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
               }
           }else{
             PRINT_TO_USER(UNAVAILABLE_DHT11, LCD_UNAVAILABLE_DHT11);
-            main_sensor = -1;
+            main_sensor = -1; // -1 if none of sensors are available
             delay(STANDARD_DELAY_TIME);
           }
-          delay(timeframe/readspermin); // Wait n seconds before accessing sensor again.
+          delay(timeframe/readsperframe); // Wait n seconds before accessing sensor again.
        }
     }
     if (main_sensor==1){
+      /* Remove min & max temperature & humidity values from averages (for better sampling) */
+      (*avg1C) -= max_temp;
+      (*avg1C) -= min_temp;
+      (*avg1H) -= max_hum;
+      (*avg1H) -= min_hum;
+      s1 -= 2;
       (*avg1C) /= s1;
       (*avg1H) /= s1;
       DI_temp= round(((*avg1C) - 0.55 * (1 - 0.01 * (*avg1H)) * (*avg1C) - 14.5));
@@ -420,6 +541,12 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
       print_to_user(String((*avg1H)), String((*avg1H)));
     }
     else if (main_sensor==2){
+      /* Remove min & max temperature & humidity values from averages (for better sampling) */
+      (*avg2C) -= max_temp2;
+      (*avg2C) -= min_temp2;
+      (*avg2H) -= max_hum2;
+      (*avg2H) -= min_hum2;
+      s2 -= 2;
       (*avg2C) /= s2;
       (*avg2H) /= s2;
       DI_temp= round((*avg2C) - 0.55 * (1 - 0.01 * (*avg2H)) * ((*avg2C) - 14.5));
@@ -523,61 +650,7 @@ int readSD(){
     return 3;
   }
 
-  /* Reading user settings from configuration file */
-
-  get_setting_from_file(ini, USER_SETTINGS, "WIFI_SSID");
-
-  wifi_ssid = String(buffer);
-
-  get_setting_from_file(ini, USER_SETTINGS, "WIFI_PASS");
-
-  wifi_pass = String(buffer);
-
-  get_setting_from_file(ini, USER_SETTINGS, "WRITE_API_KEY");
-
-  writeAPIKey = buffer;
-
-  get_setting_from_file(ini, USER_SETTINGS, "CHANNEL_ID");
-
-  sscanf(buffer, "%ld", &channelID);
-
-  /* Reading system settings from configuration file */
-
-  get_setting_from_file(ini, SYSTEM_SETTINGS, "IOT_SERVER");
-
-  iot_server = String(buffer);
-
-  get_setting_from_file(ini, SYSTEM_SETTINGS, "DELAY_TIME");
-
-  sscanf(buffer, "%d", &delay_time);
-
-  get_setting_from_file(ini, SYSTEM_SETTINGS, "TIME_FRAME");
-
-  sscanf(buffer, "%ld", &timeframe);
-
-  get_setting_from_file(ini, SYSTEM_SETTINGS, "READS_PER_MINUTE");
-
-  sscanf(buffer, "%d", &readspermin);
-
-  get_setting_from_file(ini, SYSTEM_SETTINGS, "MAIN_SENSOR_TYPE");
-
-  main_sensor = get_sensor_num();
-
-  get_setting_from_file(ini, SYSTEM_SETTINGS, "ALTERNATE_SENSOR_TYPE");
-
-  alternate_sensor = get_sensor_num();
-
-  get_setting_from_file(ini, USER_SETTINGS, "WEATHER_API_KEY");
-
-  weather_api_key = String(buffer);
-
-  get_setting_from_file(ini, USER_SETTINGS, "WEATHER_API_SERVER_LINK");
-
-  strcpy(weather_server, buffer);
-
-  get_setting_from_file(ini, USER_SETTINGS, "CITY_ID");
-
-  city_id = String(buffer);
+  read_settings_from_sd(ini);
 
   return 0;
 
@@ -629,6 +702,66 @@ void get_setting_from_file(IniFile ini, char* section, char* entry){
     print_config_file_error(ini.getError());
   }
 
+}
+
+void read_settings_from_sd(IniFile ini){
+  
+  /* Reading user settings from configuration file */
+
+  get_setting_from_file(ini, USER_SETTINGS, "WIFI_SSID");
+
+  wifi_ssid = String(buffer);
+
+  get_setting_from_file(ini, USER_SETTINGS, "WIFI_PASS");
+
+  wifi_pass = String(buffer);
+
+  get_setting_from_file(ini, USER_SETTINGS, "WRITE_API_KEY");
+
+  writeAPIKey = buffer;
+
+  get_setting_from_file(ini, USER_SETTINGS, "CHANNEL_ID");
+
+  sscanf(buffer, "%ld", &channelID);
+
+  get_setting_from_file(ini, USER_SETTINGS, "CITY_ID");
+
+  city_id = String(buffer);
+
+  /* Reading system settings from configuration file */
+
+  get_setting_from_file(ini, SYSTEM_SETTINGS, "IOT_SERVER");
+
+  iot_server = String(buffer);
+
+  get_setting_from_file(ini, SYSTEM_SETTINGS, "DELAY_TIME");
+
+  sscanf(buffer, "%d", &delay_time);
+
+  get_setting_from_file(ini, SYSTEM_SETTINGS, "TIME_FRAME");
+
+  sscanf(buffer, "%ld", &timeframe);
+
+  get_setting_from_file(ini, SYSTEM_SETTINGS, "READS_PER_FRAME");
+
+  sscanf(buffer, "%d", &readsperframe);
+
+  get_setting_from_file(ini, SYSTEM_SETTINGS, "MAIN_SENSOR_TYPE");
+
+  main_sensor = get_sensor_num();
+
+  get_setting_from_file(ini, SYSTEM_SETTINGS, "ALTERNATE_SENSOR_TYPE");
+
+  alternate_sensor = get_sensor_num();
+
+  get_setting_from_file(ini, SYSTEM_SETTINGS, "WEATHER_API_KEY");
+
+  weather_api_key = String(buffer);
+
+  get_setting_from_file(ini, SYSTEM_SETTINGS, "WEATHER_API_SERVER_LINK");
+
+  strcpy(weather_server, buffer);
+  
 }
 
 bool   wificonnect(){
@@ -720,7 +853,7 @@ void get_default_settings(){
   writeAPIKey = "0";
   delay_time = 500;
   timeframe = 6000;
-  readspermin = 10;
+  readsperframe = 10;
   main_sensor = 1;
   alternate_sensor = 2;
 
