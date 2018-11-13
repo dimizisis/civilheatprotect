@@ -77,9 +77,9 @@ void get_default_settings(){
   channelID = 0;
   writeAPIKey = "0";
   delay_time = 500;
-  timeframe = 6000;
+  timeframe = 60000;
   readsperframe = 10;
-  main_sensor = 1;
+  main_sensor = 11;
 
   wifi_ssid="Test";
   wifi_pass="Test";

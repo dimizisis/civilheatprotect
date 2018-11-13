@@ -2,20 +2,21 @@ bool get_from_OpenWeatherMapAPI(){                        //client function to s
 
       String result;
 
-      PRINT_TO_USER(GETTING_DATA, LCD_GETTING_DATA);
+      PRINT_TO_USER(GETTING_DATA, LCD_GETTING_DATA, true);
       delay(STANDARD_DELAY_TIME);
 
       if (client.connect(weather_server, 80))
       {                                              //starts client connection, checks for connection
         client.println("GET /data/2.5/weather?id="+city_id+"&units=metric&APPID="+weather_api_key);
-        client.println("Host: api.openweathermap.org");
+        client.println("Host: "+String(weather_server));
         client.println("User-Agent: ArduinoWiFi/1.1");
         client.println("Connection: close");
         client.println();
       }
       else
       {
-        PRINT_TO_USER(API_CONNECTION_FAILED,LCD_API_CONNECTION_FAILED);  //error message if no client connect
+        PRINT_TO_USER(API_CONNECTION_FAILED,LCD_API_CONNECTION_FAILED, true);  //error message if no client connect
+        delay(STANDARD_DELAY_TIME);
         return false;
       }
 
@@ -39,20 +40,23 @@ bool get_from_OpenWeatherMapAPI(){                        //client function to s
 
       if (!root.success())
       {
-        PRINT_TO_USER(PARSE_OBJECT_FAILED,LCD_PARSE_OBJECT_FAILED);
+        PRINT_TO_USER(PARSE_OBJECT_FAILED,LCD_PARSE_OBJECT_FAILED, true);
+        delay(STANDARD_DELAY_TIME);
         return false;
       }
 
       tempOutside = root["main"]["temp"];
       humOutside = root["main"]["humidity"];
 
-      PRINT_TO_USER(OUT_CONDITIONS, LCD_EMPTY);
-      PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE);
-      print_to_user(String(tempOutside), String(tempOutside));
+      PRINT_TO_USER(OUT_CONDITIONS, LCD_EMPTY, true);
+      PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE, true);
+      delay(STANDARD_DELAY_TIME);
+      print_to_user(String(tempOutside), String(tempOutside), true);
       delay(STANDARD_DELAY_TIME);
   //      lcd.clear();
-      PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY);
-      print_to_user(String(humOutside), String(humOutside));
+      PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY, true);
+      delay(STANDARD_DELAY_TIME);
+      print_to_user(String(humOutside), String(humOutside), true);
 
       delay(STANDARD_DELAY_TIME);
 

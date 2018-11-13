@@ -10,13 +10,15 @@ int readSD(){
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
-  PRINT_TO_USER(SEPARATOR, LCD_EMPTY);
-  PRINT_TO_USER(INITIALIZING_SD, LCD_INITIALIZING_SD);
+  PRINT_TO_USER(SEPARATOR, LCD_EMPTY, true);
+  PRINT_TO_USER(INITIALIZING_SD, LCD_INITIALIZING_SD, true);
+  delay(STANDARD_DELAY_TIME);
   if (!SD.begin(4)) {
-    PRINT_TO_USER(SD_CARD_NOT_INITIALIZED, LCD_SD_CARD_NOT_INITIALIZED);
+    PRINT_TO_USER(SD_CARD_NOT_INITIALIZED, LCD_SD_CARD_NOT_INITIALIZED, true);
+    delay(STANDARD_DELAY_TIME);
     return 1;
   }
-  PRINT_TO_USER(SD_CARD_INITIALIZED, LCD_SD_CARD_INITIALIZED);
+  PRINT_TO_USER(SD_CARD_INITIALIZED, LCD_SD_CARD_INITIALIZED, true);
 
   IniFile ini(CONFIGURATION_FILENAME);
 
@@ -59,4 +61,29 @@ int readSD(){
 //    return false;
 //  }
   return true;
+}
+
+String create_csv_string(String temp, String hum){
+  
+  /* This function creates a line of csv file (i.e 23/10/2018,23.00,66.23) */
+  
+  return (String(temp) + "," + String(hum)); // convert to CSV;
+}
+
+void save_data_to_csv(String data_string){
+
+  /* This function writes a line to csv file */
+
+  File sensor_data;
+  
+  if (read_sd == 0){
+    if (!SD.exists(DATA_FILENAME))
+      sensor_data = SD.open(DATA_FILENAME, FILE_WRITE); // Write new file (if not exist)
+    else
+      sensor_data = SD.open(DATA_FILENAME, O_RDWR | O_APPEND); // Open file in append mode
+    if (sensor_data){
+      sensor_data.println(data_string);
+      sensor_data.close(); // close the file
+    }
+  }
 }

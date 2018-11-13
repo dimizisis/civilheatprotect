@@ -1,4 +1,4 @@
-void print_to_user(String serial_message, String lcd_message){
+void print_to_user(String serial_message, String lcd_message, bool flag){
 
   /* Prints messages to serial & arduino's LCD */
 
@@ -7,8 +7,10 @@ void print_to_user(String serial_message, String lcd_message){
   else
     Serial.println(serial_message);
 
-//  lcd.clear();
-//  lcd.print(lcd_message);
+if (flag){
+//    lcd.clear();
+//    lcd.print(lcd_message);
+}
 }
 
 void print_config_file_error(uint8_t e, bool eol){

@@ -62,6 +62,8 @@
 #define SYSTEM_SETTINGS "SSETTINGS"
 #define USER_SETTINGS "USETTINGS"
 
+#define DATA_FILENAME "data.csv"
+
 #define WIFI_MAX_WAITING_TIME 20000 // How much time we wait for WiFi connection
 #define SYSTEM_BOOT_DELAY 7000
 #define STANDARD_DELAY_TIME 3000
@@ -136,15 +138,14 @@
 
 /* Macro Function for printing to user (Serial & LCD) */
 
-#define PRINT_TO_USER(serial_message, lcd_message) print_to_user(serial_message, lcd_message)
+#define PRINT_TO_USER(serial_message, lcd_message, flag) print_to_user(serial_message, lcd_message, flag)
 
 void print_config_file_error(uint8_t e, bool eol = true); /* Prints specific error in case of .ini file failure. */
 
 // Initialize DHT sensor for normal 16mhz Arduino
+int main_sensor=11; // 22 for DHT22, 11 for DHT11. By default we use sensor DHT22
 DHT dht1(DHT11PIN, DHTTYPE);
 //DHT dht2(DHT11PIN, DHTTYPE);
-
-int main_sensor=11; // 22 for DHT22, 11 for DHT11. By default we use sensor DHT22
 
 const int Ld1_bluePin = D0;
 const int Ld1_greenPin = D2;
@@ -197,34 +198,35 @@ void setup() {
 
     if (wificonnect()){
       flag = 0;
-      PRINT_TO_USER(IN_AND_OUT_SENSORS, LCD_EMPTY);
+      PRINT_TO_USER(IN_AND_OUT_SENSORS, LCD_EMPTY, true);
     }
     else{
       flag = 1;
-      PRINT_TO_USER(IN_SENSORS, LCD_EMPTY);
+      PRINT_TO_USER(IN_SENSORS, LCD_EMPTY, true);
     }
   }
   else if (read_sd == 1) {
     get_default_settings();
-    PRINT_TO_USER(DEFAULT_SETTINGS, LCD_DEFAULT_SETTINGS);
+    PRINT_TO_USER(DEFAULT_SETTINGS, LCD_DEFAULT_SETTINGS, true);
     delay(STANDARD_DELAY_TIME);
     flag = 3;
   }
   else{
     get_default_settings();
-    PRINT_TO_USER(DEFAULT_SETTINGS, LCD_DEFAULT_SETTINGS);
+    PRINT_TO_USER(DEFAULT_SETTINGS, LCD_DEFAULT_SETTINGS, true);
     delay(STANDARD_DELAY_TIME);
       flag = 1; // We have SD card available, but not configuration file and WiFi (SD Card OK & WiFi failure)
-      PRINT_TO_USER(IN_SENSORS, LCD_EMPTY);
+      PRINT_TO_USER(IN_SENSORS, LCD_EMPTY, true);
   }
 
   dht1.begin();
 //  dht2.begin();
 
   if (main_sensor == 22)
-    PRINT_TO_USER(USING_DHT22, LCD_USING_DHT22);
+    PRINT_TO_USER(USING_DHT22, LCD_USING_DHT22, true);
   else if (main_sensor == 11)
-    PRINT_TO_USER(USING_DHT11, LCD_USING_DHT11);
+    PRINT_TO_USER(USING_DHT11, LCD_USING_DHT11, true);
+  delay(STANDARD_DELAY_TIME);
 
   switchoff();
   delay(SYSTEM_BOOT_DELAY); // Delay to let system boot Wait before accessing Sensor
