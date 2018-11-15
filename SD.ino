@@ -16,7 +16,7 @@ int readSD(){
   if (!SD.begin(4)) {
     PRINT_TO_USER(SD_CARD_NOT_INITIALIZED, LCD_SD_CARD_NOT_INITIALIZED, true);
     delay(STANDARD_DELAY_TIME);
-    return 1;
+    return  1;
   }
   PRINT_TO_USER(SD_CARD_INITIALIZED, LCD_SD_CARD_INITIALIZED, true);
 

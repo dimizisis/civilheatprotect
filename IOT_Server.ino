@@ -1,4 +1,4 @@
-int write_data_to_server( String server, long channel, unsigned int field1, float field1Data, unsigned int field2, float field2Data, unsigned int field3, long field3Data ){
+int write2server( String server, long channel, unsigned int field1, float field1Data, unsigned int field2, float field2Data, unsigned int field3, int field3Data ){
 
   // Use this function if you want multiple fields simultaneously
 
@@ -11,7 +11,82 @@ int write_data_to_server( String server, long channel, unsigned int field1, floa
     if ( writeSuccess ){
       Serial.println( "Tmp: " + String(field1Data) + "C Hum: " + String(field2Data) + "% DI: " + String(field3Data) + " written to Thingspeak." );
     }
+    else
+      Serial.println("Failed send data to TS.");
     return writeSuccess;
   }
+}
 
+void write_csv_data_to_server(char* csvBuffer) {
+  
+     /* CSV format to bulk update
+      * This function posts the data to ThingSpeak server
+    */
+
+    // example : https://api.thingspeak.com/channels/598750/bulk_update.csv&write_api_key=3WAVULEKX06N4LNM&timeFormat=absolute&updates=2018-11-30T10:26:23-0500,2,3,4,|2018-11-29T10:26:23-0500,6,7,8,|
+
+    // before call do :
+    // char[] csvBuffer;
+    // strcpy(csvBuffer,"write_api_key="+WriteAPIKey+"&time_format=absolute&updates=2018-11-30T10:26:23-0500,2,3,4,|2018-11-29T10:26:23-0500,6,7,8,|");
+    // (updates in this example are dummy, insert data from CSV)
+    
+    // Compute the data buffer length
+    String data_length = String(strlen(csvBuffer));
+    
+    // Close any connection before sending a new request
+    client.stop();
+    
+    // POST data to ThingSpeak
+    if (client.connect(server, 80)) {
+      
+        client.println("POST /channels/"+channelID+"/bulk_update.csv HTTP/1.1");
+        client.println("Host: api.thingspeak.com");
+        client.println("User-Agent: esp-idf/1.0 esp32");
+        client.println("Connection: close");
+        client.println("Content-Type: application/x-www-form-urlencoded");
+        client.println("Content-Length: "+data_length);
+        client.println();
+        client.println(csvBuffer);
+    }
+    else {
+        Particle.publish("Failure","Failed to update ThingSpeak channel");
+    }
+    delay(1000); // Wait to receive the response
+    client.parseFloat();
+    String resp = String(client.parseInt());
+    Particle.publish("Response code",resp); // Print the response code. 202 indicates that the server has accepted the response
+    lastConnectionTime = millis(); // Update the last conenction time
+}
+
+void write_data_to_server(float temp, float hum, float DI) {
+  
+  // Close any connection before sending a new request
+  client.stop();
+  
+  String str_sensor = String(temp);
+  String str_sensor2 = String(hum);
+  String str_sensor3 = String(DI);;
+
+  String postStr = "api_key="+writeAPIKey+"&field1="+str_sensor+"&field2="+str_sensor2+"&field3="+str_sensor3;
+  
+    // POST data to ThingSpeak
+    if (client.connect(server, 80)) {
+    
+        client.println("POST /channels/"+channelID+"/update HTTP/1.1");
+        client.println("Host: api.thingspeak.com");
+        client.println("User-Agent: esp-idf/1.0 esp32");
+        client.println("Connection: close");
+        client.println("Content-Type: application/x-www-form-urlencoded");
+        client.println(postStr.length());
+        client.println();
+        client.print(postStr);
+    }
+    else {
+        Particle.publish("Failure","Failed to update ThingSpeak channel");
+    }
+    delay(1000); // Wait to receive the response
+    client.parseFloat();
+    String resp = String(client.parseInt());
+    Particle.publish("Response code",resp); // Print the response code. 202 indicates that the server has accepted the response
+    lastConnectionTime = millis(); // Update the last conenction time
 }

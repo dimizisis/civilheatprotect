@@ -21,6 +21,6 @@ bool   wificonnect(){
     delay(1000);
     PRINT_TO_USER(DOT, LCD_EMPTY, true);
   }
-//  ThingSpeak.begin( client );
+  ThingSpeak.begin( client );
   return connected;
 }

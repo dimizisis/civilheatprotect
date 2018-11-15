@@ -1,4 +1,4 @@
-#include <Wire.h>
+//#include <Wire.h>
 //#include <LiquidCrystal_I2C.h>
 #include <SPI.h>  // Library for SD Card
 #include <SD.h>   // Library for SD Card
@@ -53,7 +53,7 @@
 
 #define DHT11PIN D5     // what pin we're connected to
 #define DHT22PIN D7     // what pin we're connected to
-#define DHTTYPE DHT11
+#define DHTTYPE DHT22
 #define CONFIGURATION_FILENAME "config.ini"
 #define BUFFER_SIZE 80
 
@@ -143,8 +143,8 @@
 void print_config_file_error(uint8_t e, bool eol = true); /* Prints specific error in case of .ini file failure. */
 
 // Initialize DHT sensor for normal 16mhz Arduino
-int main_sensor=11; // 22 for DHT22, 11 for DHT11. By default we use sensor DHT22
-DHT dht1(DHT11PIN, DHTTYPE);
+int main_sensor=22; // 22 for DHT22, 11 for DHT11. By default we use sensor DHT22
+DHT dht1(DHT22PIN, DHTTYPE);
 //DHT dht2(DHT11PIN, DHTTYPE);
 
 const int Ld1_bluePin = D0;
@@ -189,8 +189,8 @@ void setup() {
   pinMode(Ld1_greenPin, OUTPUT);
   pinMode(Ld1_bluePin, OUTPUT);
   pinMode(Ld2_redPin, OUTPUT);
-//  pinMode(DHT22PIN, INPUT);
-  pinMode(DHT11PIN, INPUT);
+  pinMode(DHT22PIN, INPUT);
+  //pinMode(DHT11PIN, INPUT);
 
   Serial.begin(115200);
 
@@ -239,15 +239,14 @@ void loop() {
     int DI;
 
     sensor_success = get_data_from_sensors(flag, &avg1C, &avg2C, &avg1H, &avg2H, &DI);
-
     if (!sensor_success)
       exit(1);
 
     delay(STANDARD_DELAY_TIME);
 
     if (flag==0){
-//      write_data_to_server( iot_server, channelID , df1, avg1C , df2, avg1H , df3 ,DI );
-      // delay(STANDARD_DELAY_TIME);
+      write2server( iot_server, channelID , df1, avg1C , df2, avg1H , df3 ,DI );
+      delay(STANDARD_DELAY_TIME*2);
       GET_success = get_from_OpenWeatherMapAPI();
     }
 
