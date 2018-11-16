@@ -25,6 +25,10 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
             temp = dht1.readTemperature();
             
             hum = dht1.readHumidity();
+
+            Serial.println("Temp: "+String(temp)+" Hum: "+String(hum));
+
+            delay(4000);
             
             if ((!isnan(temp) && !isnan(hum))) {
               if ((temp >= DHT22_MIN_TEMP && temp <= DHT22_MAX_TEMP) && (hum >= DHT22_MIN_HUM && hum <= DHT22_MAX_HUM)){
@@ -54,6 +58,11 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
                   temp = dht1.readTemperature();
                   
                   hum = dht1.readHumidity();
+
+                  Serial.println("INSIDE WHILE: Temp: "+String(temp)+" Hum: "+String(hum));
+
+                  delay(4000);
+                  
                   if ((!isnan(temp) && !isnan(hum))) {
                     if ((temp >= DHT22_MIN_TEMP && temp <= DHT22_MAX_TEMP) && (hum >= DHT22_MIN_HUM && hum <= DHT22_MAX_HUM))
                       break;
@@ -85,6 +94,8 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
 //                  }
                   temp = dht1.readTemperature();
                   hum = dht1.readHumidity();
+                  Serial.println("INSIDE WHILE: Temp: "+String(temp)+" Hum: "+String(hum));
+                  delay(4000);
                   if ((!isnan(temp) && !isnan(hum))) {
                     if ((temp >= DHT22_MIN_TEMP && temp <= DHT22_MAX_TEMP) && (hum >= DHT22_MIN_HUM && hum <= DHT22_MAX_HUM))
                       break;
@@ -118,6 +129,10 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
           temp2= dht1.readTemperature();
           
           hum2 = dht1.readHumidity();
+
+          Serial.println("Temp: "+String(temp2)+" Hum: "+String(hum2));
+
+          delay(4000);
           
           if ((!isnan(temp2) && !isnan(hum2))) {
               if ((temp2 >= DHT11_MIN_TEMP && temp2 <= DHT11_MAX_TEMP) && (hum2 >= DHT11_MIN_HUM && hum2 <= DHT11_MAX_HUM)){
@@ -147,10 +162,13 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
 //                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
 //                    break;
 //                  }
-                  temp = dht1.readTemperature();
-                  hum = dht1.readHumidity();
-                  if ((!isnan(temp) && !isnan(hum))) {
-                    if ((temp >= DHT11_MIN_TEMP && temp <= DHT11_MAX_TEMP) && (hum >= DHT11_MIN_HUM && hum <= DHT11_MAX_HUM))
+                  temp2 = dht1.readTemperature();
+                  hum2 = dht1.readHumidity();
+                  Serial.println("INSIDE WHILE: Temp: "+String(temp2)+" Hum: "+String(hum2));
+
+                  delay(4000);
+                  if ((!isnan(temp2) && !isnan(hum2))) {
+                    if ((temp2 >= DHT11_MIN_TEMP && temp <= DHT11_MAX_TEMP) && (hum2 >= DHT11_MIN_HUM && hum2 <= DHT11_MAX_HUM))
                       break;
                 }
                 
@@ -181,10 +199,15 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
 //                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
 //                    break;
 //                  }
-                  temp = dht1.readTemperature();
-                  hum = dht1.readHumidity();
-                  if ((!isnan(temp) && !isnan(hum))) {
-                    if ((temp >= DHT11_MIN_TEMP && temp <= DHT11_MAX_TEMP) && (hum >= DHT11_MIN_HUM && hum <= DHT11_MAX_HUM))
+                  temp2 = dht1.readTemperature();
+                  hum2 = dht1.readHumidity();
+
+                  Serial.println("INSIDE WHILE: Temp: "+String(temp2)+" Hum: "+String(hum2));
+
+                  delay(4000);
+                  
+                  if ((!isnan(temp2) && !isnan(hum2))) {
+                    if ((temp2 >= DHT11_MIN_TEMP && temp2 <= DHT11_MAX_TEMP) && (hum2 >= DHT11_MIN_HUM && hum2 <= DHT11_MAX_HUM))
                       break;
                 }
                 
@@ -403,10 +426,10 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
 //                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
 //                    break;
 //                  }
-                  temp = dht1.readTemperature();
-                  hum = dht1.readHumidity();
-                  if ((!isnan(temp) && !isnan(hum))) {
-                    if ((temp >= DHT11_MIN_TEMP && temp <= DHT11_MAX_TEMP) && (hum >= DHT11_MIN_HUM && hum <= DHT11_MAX_HUM))
+                  temp2 = dht1.readTemperature();
+                  hum2 = dht1.readHumidity();
+                  if ((!isnan(temp2) && !isnan(hum2))) {
+                    if ((temp2 >= DHT11_MIN_TEMP && temp2 <= DHT11_MAX_TEMP) && (hum2 >= DHT11_MIN_HUM && hum2 <= DHT11_MAX_HUM))
                       break;
                 }
                 delay(STANDARD_DELAY_TIME);
@@ -436,10 +459,10 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
 //                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
 //                    break;
 //                  }
-                  temp = dht1.readTemperature();
-                  hum = dht1.readHumidity();
-                  if ((!isnan(temp) && !isnan(hum))) {
-                    if ((temp >= DHT11_MIN_TEMP && temp <= DHT11_MAX_TEMP) && (hum >= DHT11_MIN_HUM && hum <= DHT11_MAX_HUM))
+                  temp2 = dht1.readTemperature();
+                  hum2 = dht1.readHumidity();
+                  if ((!isnan(temp2) && !isnan(hum2))) {
+                    if ((temp2 >= DHT11_MIN_TEMP && temp2 <= DHT11_MAX_TEMP) && (hum2 >= DHT11_MIN_HUM && hum2 <= DHT11_MAX_HUM))
                       break;
                 }
                 delay(STANDARD_DELAY_TIME);

@@ -1,5 +1,5 @@
-//#include <Wire.h>
-//#include <LiquidCrystal_I2C.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 #include <SPI.h>  // Library for SD Card
 #include <SD.h>   // Library for SD Card
 #include <DHT.h>  // Library for DHT sensors
@@ -53,7 +53,7 @@
 
 #define DHT11PIN D5     // what pin we're connected to
 #define DHT22PIN D7     // what pin we're connected to
-#define DHTTYPE DHT22
+#define DHTTYPE DHT11
 #define CONFIGURATION_FILENAME "config.ini"
 #define BUFFER_SIZE 80
 
@@ -141,11 +141,13 @@
 
 #define PRINT_TO_USER(serial_message, lcd_message, flag) print_to_user(serial_message, lcd_message, flag)
 
+LiquidCrystal_I2C lcd(0x27,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+
 void print_config_file_error(uint8_t e, bool eol = true); /* Prints specific error in case of .ini file failure. */
 
 // Initialize DHT sensor for normal 16mhz Arduino
-int main_sensor=22; // 22 for DHT22, 11 for DHT11. By default we use sensor DHT22
-DHT dht1(DHT22PIN, DHTTYPE);
+int main_sensor=11; // 22 for DHT22, 11 for DHT11. By default we use sensor DHT22
+DHT dht1(DHT11PIN, DHTTYPE);
 //DHT dht2(DHT11PIN, DHTTYPE);
 
 const int Ld1_bluePin = D0;
@@ -194,7 +196,19 @@ void setup() {
   pinMode(DHT22PIN, INPUT);
   //pinMode(DHT11PIN, INPUT);
 
+  // initialize the lcd 
+  lcd.init();                     
+  lcd.init();
+  // Print a message to the LCD.
+  lcd.backlight();
+  lcd.setCursor(0,0);
+  lcd.print("CivilHeatProtect");
+  lcd.setCursor(0,1);
+  lcd.print("================");
+
   Serial.begin(115200);
+
+  dht1.begin();
 
   if ((read_sd = readSD()) == 0){
 
@@ -221,7 +235,6 @@ void setup() {
       PRINT_TO_USER(IN_SENSORS, LCD_EMPTY, true);
   }
 
-  dht1.begin();
 //  dht2.begin();
 
   if (main_sensor == 22)
@@ -255,8 +268,30 @@ void loop() {
       (main_sensor == 22) ? DI_temp_out = calc_DI_temp(avg1C, avg1H) : DI_temp_out = calc_DI_temp(avg2C, avg2H);
       DI_out = calc_DI(DI_temp_out);
       GET_success = get_from_OpenWeatherMapAPI();
-      delay(STANDARD_DELAY_TIME*2);
-      write_to_server( iot_server, channelID , df1, avg1C , df2 , avg1H , df3 , DI_in , df4 , DI_out );
+      delay(STANDARD_DELAY_TIME);
+      int written;
+      (main_sensor == 22) ? written = write_to_server( iot_server, channelID , df1, avg1C , df2 , avg1H , df3 , DI_in , df4 , DI_out ) : written = write_to_server( iot_server, channelID , df1, avg2C , df2 , avg2H , df3 , DI_in , df4 , DI_out );
+      String lcd_string1 = (String("T:") + String(avg2C) + " H:" + String(avg2H) + "%");
+      String lcd_string2 = (String("DI-IN:") + String(DI_in) + " DI-OUT:" + String(DI_out));
+      Serial.println("lcd_msg1: " + lcd_string1);
+      Serial.println("lcd_msg2: " + lcd_string2);
+      
+      if (written == 200){
+        if (main_sensor == 22){
+          lcd.clear();
+          lcd.setCursor(0,0);
+          lcd.print(lcd_string1);
+          lcd.setCursor(0,1);
+          lcd.print(lcd_string2);
+        }
+        else{
+          lcd.clear();
+          lcd.setCursor(0,0);
+          lcd.print(lcd_string1);
+          lcd.setCursor(0,1);
+          lcd.print(lcd_string2);
+        }
+      }
       delay(SERVER_MINIMUM_DELAY_TIME);
 
     }
