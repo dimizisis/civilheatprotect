@@ -15,28 +15,6 @@ void get_setting_from_file(IniFile ini, char* section, char* entry){
 
 void read_settings_from_sd(IniFile ini){
   
-  /* Reading user settings from configuration file */
-
-  get_setting_from_file(ini, USER_SETTINGS, "WIFI_SSID");
-
-  wifi_ssid = String(buffer);
-
-  get_setting_from_file(ini, USER_SETTINGS, "WIFI_PASS");
-
-  wifi_pass = String(buffer);
-
-  get_setting_from_file(ini, USER_SETTINGS, "WRITE_API_KEY");
-
-  writeAPIKey = buffer;
-
-  get_setting_from_file(ini, USER_SETTINGS, "CHANNEL_ID");
-
-  sscanf(buffer, "%ld", &channelID);
-
-  get_setting_from_file(ini, USER_SETTINGS, "CITY_ID");
-
-  city_id = String(buffer);
-
   /* Reading system settings from configuration file */
 
   get_setting_from_file(ini, SYSTEM_SETTINGS, "IOT_SERVER");
@@ -66,7 +44,29 @@ void read_settings_from_sd(IniFile ini){
   get_setting_from_file(ini, SYSTEM_SETTINGS, "WEATHER_API_SERVER_LINK");
 
   strcpy(weather_server, buffer);
-  
+
+  /* Reading user settings from configuration file */
+
+  get_setting_from_file(ini, USER_SETTINGS, "WIFI_SSID");
+
+  wifi_ssid = String(buffer);
+
+  get_setting_from_file(ini, USER_SETTINGS, "WIFI_PASS");
+
+  wifi_pass = String(buffer);
+
+  get_setting_from_file(ini, USER_SETTINGS, "CHANNEL_ID");
+
+  sscanf(buffer, "%ld", &channelID);
+
+  get_setting_from_file(ini, USER_SETTINGS, "CITY_ID");
+
+  city_id = String(buffer);
+
+  get_setting_from_file(ini, USER_SETTINGS, "WRITE_API_KEY");
+
+  writeAPIKey = buffer;
+
 }
 
 void get_default_settings(){

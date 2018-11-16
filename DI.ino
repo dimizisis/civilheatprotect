@@ -1,3 +1,7 @@
+float calc_DI_temp(float avgC, float avgH){
+   return round(avgC - 0.55 * (1 - 0.01 * avgH) * (avgC - 14.5));
+}
+
 int calc_DI(int temp){
   if (temp<=21)
     return 1;

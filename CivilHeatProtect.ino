@@ -67,6 +67,7 @@
 #define WIFI_MAX_WAITING_TIME 20000 // How much time we wait for WiFi connection
 #define SYSTEM_BOOT_DELAY 7000
 #define STANDARD_DELAY_TIME 3000
+#define SERVER_MINIMUM_DELAY_TIME 15000
 
 /* Sensor Limits */
 
@@ -168,7 +169,8 @@ String weather_api_key;
 String city_id;
 unsigned int df1 = 1;  // Data Field to write temperature data
 unsigned int df2 = 2;  // Data Field to write Humidity data
-unsigned int df3 = 3;  // Data Field to write distress index data
+unsigned int df3 = 3;  // Data Field to write distress index (in) data
+unsigned int df4 = 4;  // Data Field to write distress index (out) data
 
 //Variables
 int flag; /* if SD card & WiFi OK, flag = 0
@@ -234,20 +236,29 @@ void setup() {
 
 void loop() {
 
-    float avg1C=0,avg1H=0,avg2C=0,avg2H=0;
+    float avg1C=0,avg1H=0,avg2C=0,avg2H=0, DI_temp_in, DI_temp_out;
     bool sensor_success=false,GET_success=false;
-    int DI;
+    int DI_in, DI_out;
 
-    sensor_success = get_data_from_sensors(flag, &avg1C, &avg2C, &avg1H, &avg2H, &DI);
+    sensor_success = get_data_from_sensors(flag, &avg1C, &avg2C, &avg1H, &avg2H);
     if (!sensor_success)
-      exit(1);
+      ESP.restart();
+
+    (main_sensor == 22) ? DI_temp_in = calc_DI_temp(avg1C, avg1H) : DI_temp_in = calc_DI_temp(avg2C, avg2H);
+      
+    DI_in = calc_DI(DI_temp_in);
+    led_status(DI_in);
 
     delay(STANDARD_DELAY_TIME);
 
     if (flag==0){
-      write2server( iot_server, channelID , df1, avg1C , df2, avg1H , df3 ,DI );
-      delay(STANDARD_DELAY_TIME*2);
+      (main_sensor == 22) ? DI_temp_out = calc_DI_temp(avg1C, avg1H) : DI_temp_out = calc_DI_temp(avg2C, avg2H);
+      DI_out = calc_DI(DI_temp_out);
       GET_success = get_from_OpenWeatherMapAPI();
+      delay(STANDARD_DELAY_TIME*2);
+      write_to_server( iot_server, channelID , df1, avg1C , df2 , avg1H , df3 , DI_in , df4 , DI_out );
+      delay(SERVER_MINIMUM_DELAY_TIME);
+
     }
 
 }

@@ -1,7 +1,6 @@
-bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H, float * avg2H, int * DI){
+bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H, float * avg2H){
 
   int s1=0,s2=0;
-  int DI_temp=0;
   float min_temp=DHT22_MAX_TEMP;
   float max_temp=DHT22_MIN_TEMP;
   float min_hum=DHT22_MAX_HUM;
@@ -47,12 +46,13 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
               else{
                 uint32_t curr_time = millis();
                 while (true){
-                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-                    main_sensor = -1;
-                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-                    break;
-                  }
+//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
+//                    main_sensor = -1;
+//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
+//                    break;
+//                  }
                   temp = dht1.readTemperature();
+                  
                   hum = dht1.readHumidity();
                   if ((!isnan(temp) && !isnan(hum))) {
                     if ((temp >= DHT22_MIN_TEMP && temp <= DHT22_MAX_TEMP) && (hum >= DHT22_MIN_HUM && hum <= DHT22_MAX_HUM))
@@ -78,11 +78,11 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
             else{
                 uint32_t curr_time = millis();
                 while (true){
-                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-                    main_sensor = -1;
-                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-                    break;
-                  }
+//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
+//                    main_sensor = -1;
+//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
+//                    break;
+//                  }
                   temp = dht1.readTemperature();
                   hum = dht1.readHumidity();
                   if ((!isnan(temp) && !isnan(hum))) {
@@ -142,11 +142,11 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
                 /* Try & get sensor values for max time the standard delay we set. If still nan or out of bounds, then sensors unavailable... */
                 uint32_t curr_time = millis();
                 while (true){
-                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-                    main_sensor = -1;
-                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-                    break;
-                  }
+//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
+//                    main_sensor = -1;
+//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
+//                    break;
+//                  }
                   temp = dht1.readTemperature();
                   hum = dht1.readHumidity();
                   if ((!isnan(temp) && !isnan(hum))) {
@@ -176,11 +176,11 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
                 /* Try & get sensor values for max time the standard delay we set. If still nan or out of bounds, then sensors unavailable... */
                 uint32_t curr_time = millis();
                 while (true){
-                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-                    main_sensor = -1;
-                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-                    break;
-                  }
+//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
+//                    main_sensor = -1;
+//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
+//                    break;
+//                  }
                   temp = dht1.readTemperature();
                   hum = dht1.readHumidity();
                   if ((!isnan(temp) && !isnan(hum))) {
@@ -216,7 +216,6 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
       s1 -= 2;
       (*avg1C) /= s1;
       (*avg1H) /= s1;
-      DI_temp= round((*avg1C) - 0.55 * (1 - 0.01 * (*avg1H)) * ((*avg1C) - 14.5));
 
       PRINT_TO_USER(SEPARATOR, LCD_EMPTY, true);
       PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY, true);
@@ -238,7 +237,6 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
       s2 -= 2;
       (*avg2C) /= s2;
       (*avg2H) /= s2;
-      DI_temp= round((*avg2C) - 0.55 * (1 - 0.01 * (*avg2H)) * ((*avg2C) - 14.5));
 
       PRINT_TO_USER(SEPARATOR, LCD_EMPTY, true);
       PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY, true);
@@ -258,9 +256,7 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
       delay(STANDARD_DELAY_TIME);
       return false;
     }
-
-    *DI = calc_DI(DI_temp);
-    led_status(*DI);
+    
     return true;
 
   }
@@ -307,11 +303,11 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
               else{
                 uint32_t curr_time = millis();
                 while (true){
-                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-                    main_sensor = -1;
-                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-                    break;
-                  }
+//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
+//                    main_sensor = -1;
+//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
+//                    break;
+//                  }
                   temp = dht1.readTemperature();
                   hum = dht1.readHumidity();
                   if ((!isnan(temp) && !isnan(hum))) {
@@ -338,11 +334,11 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
             else{
                 uint32_t curr_time = millis();
                 while (true){
-                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-                    main_sensor = -1;
-                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-                    break;
-                  }
+//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
+//                    main_sensor = -1;
+//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
+//                    break;
+//                  }
                   temp = dht1.readTemperature();
                   hum = dht1.readHumidity();
                   if ((!isnan(temp) && !isnan(hum))) {
@@ -402,11 +398,11 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
                 /* Try & get sensor values for max time the standard delay we set. If still nan or out of bounds, then sensors unavailable... */
                 uint32_t curr_time = millis();
                 while (true){
-                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-                    main_sensor = -1;
-                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-                    break;
-                  }
+//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
+//                    main_sensor = -1;
+//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
+//                    break;
+//                  }
                   temp = dht1.readTemperature();
                   hum = dht1.readHumidity();
                   if ((!isnan(temp) && !isnan(hum))) {
@@ -435,11 +431,11 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
                 /* Try & get sensor values for max time the standard delay we set. If still nan or out of bounds, then sensors unavailable... */
                 uint32_t curr_time = millis();
                 while (true){
-                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-                    main_sensor = -1;
-                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-                    break;
-                  }
+//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
+//                    main_sensor = -1;
+//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
+//                    break;
+//                  }
                   temp = dht1.readTemperature();
                   hum = dht1.readHumidity();
                   if ((!isnan(temp) && !isnan(hum))) {
@@ -474,7 +470,6 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
       s1 -= 2;
       (*avg1C) /= s1;
       (*avg1H) /= s1;
-      DI_temp= round((*avg1C) - 0.55 * (1 - 0.01 * (*avg1H)) * ((*avg1C) - 14.5));
 
       PRINT_TO_USER(SEPARATOR, LCD_EMPTY, true);
       PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY, true);
@@ -499,7 +494,6 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
       s2 -= 2;
       (*avg2C) /= s2;
       (*avg2H) /= s2;
-      DI_temp= round((*avg2C) - 0.55 * (1 - 0.01 * (*avg2H)) * ((*avg2C) - 14.5));
 
       PRINT_TO_USER(SEPARATOR, LCD_EMPTY, true);
       PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY, true);
@@ -520,10 +514,7 @@ bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H
       return false;
     }
 
-    *DI = calc_DI(DI_temp);
-    led_status(*DI);
     return true;
-
 }
 
 }
