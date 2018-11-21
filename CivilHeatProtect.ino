@@ -51,8 +51,9 @@
 #define D12 12  // SD MISO
 #define D13 14  // SD SCK
 
-#define DHT11PIN D5     // what pin we're connected to
-#define DHT22PIN D7     // what pin we're connected to
+//#define DHT11PIN D5     // what pin we're connected to
+//#define DHT22PIN D7     // what pin we're connected to
+#define DHT11PIN D9     // what pin we're connected to
 #define DHTTYPE DHT11
 #define CONFIGURATION_FILENAME "config.ini"
 #define BUFFER_SIZE 80
@@ -153,7 +154,7 @@ DHT dht1(DHT11PIN, DHTTYPE);
 const int Ld1_bluePin = D0;
 const int Ld1_greenPin = D2;
 const int Ld1_redPin=D3;
-const int Ld2_redPin= D4;
+const int Ld2_redPin= D5;
 int delay_time;
 long timeframe;
 int readsperframe;
@@ -193,11 +194,10 @@ void setup() {
   pinMode(Ld1_greenPin, OUTPUT);
   pinMode(Ld1_bluePin, OUTPUT);
   pinMode(Ld2_redPin, OUTPUT);
-  pinMode(DHT22PIN, INPUT);
+  pinMode(DHT11PIN, INPUT);
   //pinMode(DHT11PIN, INPUT);
 
-  // initialize the lcd 
-  lcd.init();                     
+  // initialize the lcd                    
   lcd.init();
   // Print a message to the LCD.
   lcd.backlight();
@@ -245,6 +245,10 @@ void setup() {
 
   switchoff();
   delay(SYSTEM_BOOT_DELAY); // Delay to let system boot Wait before accessing Sensor
+
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Sensor sampling");
 }
 
 void loop() {
