@@ -275,27 +275,17 @@ void loop() {
       delay(STANDARD_DELAY_TIME);
       int written;
       (main_sensor == 22) ? written = write_to_server( iot_server, channelID , df1, avg1C , df2 , avg1H , df3 , DI_in , df4 , DI_out ) : written = write_to_server( iot_server, channelID , df1, avg2C , df2 , avg2H , df3 , DI_in , df4 , DI_out );
-      String lcd_string1 = (String("T:") + String(avg2C) + " H:" + String(avg2H) + "%");
-      String lcd_string2 = (String("DI-IN:") + String(DI_in) + " DI-OUT:" + String(DI_out));
-      Serial.println("lcd_msg1: " + lcd_string1);
-      Serial.println("lcd_msg2: " + lcd_string2);
       
-      if (written == 200){
-        if (main_sensor == 22){
-          lcd.clear();
-          lcd.setCursor(0,0);
-          lcd.print(lcd_string1);
-          lcd.setCursor(0,1);
-          lcd.print(lcd_string2);
-        }
-        else{
-          lcd.clear();
-          lcd.setCursor(0,0);
-          lcd.print(lcd_string1);
-          lcd.setCursor(0,1);
-          lcd.print(lcd_string2);
-        }
-      }
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print (String("T:"));
+      lcd.print (avg2C,1);
+      lcd.print ("  H:");
+      lcd.print (avg2H,1);
+      lcd.print ("%");
+      lcd.setCursor(0,1);
+      lcd.print (String("DI-IN:") + String(DI_in) + " DI-OUT:" + String(DI_out));
+      
       delay(SERVER_MINIMUM_DELAY_TIME);
 
     }

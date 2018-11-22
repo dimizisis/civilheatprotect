@@ -18,6 +18,20 @@ int write_to_server( String server, long channel, unsigned int field1, float fie
   }
 }
 
+void write_metadata_to_server (){
+
+  int postCode = 54635;
+
+  String postMessage = ("metadata={\"postcode\":" + postCode + "}" );
+
+  int writeSuccess = writeRaw (channelID, postMessage, writeAPIKey);
+
+  if ( writeSuccess == 200 )
+    Serial.println("Metadata sent to TS.")
+  else
+    Serial.println("Failed send metadata to TS.");
+}
+
 void post_bulk_to_IOT_server(char* csvBuffer) {
   
      // CSV format to bulk update
