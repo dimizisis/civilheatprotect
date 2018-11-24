@@ -1,560 +1,133 @@
-bool get_data_from_sensors(int flag, float * avg1C, float * avg2C, float * avg1H, float * avg2H){
+/*
+ * Function:  get_data_from_sensor
+ * --------------------
+ * gets data (temperature & humidity) from DHT sensor
+ * 
+ * avgC: pointer to temperature variable, the one that will be used to calculate the average temp
+ * avgH: pointer to humidity variable, the one that will be used to calculate the average hum
+ * obs: pointer to number of observations variable, the one that will be used to divide avgC, avgH with
+ * min_temp: pointer to minimum temperature variable (from all observations)
+ * max_temp: pointer to maximum temperature variable (from all observations)
+ * min_hum: pointer to minimum humidity variable (from all observations)
+ * max_hum: pointer to maximum humidity variable (from all observations)
+ *
+ *  returns true, if sensors available & working
+ *          false, if sensors failed to sample
+ *  
+ */
 
-  int s1=0,s2=0;
-  float min_temp=DHT22_MAX_TEMP;
-  float max_temp=DHT22_MIN_TEMP;
-  float min_hum=DHT22_MAX_HUM;
-  float max_hum=DHT22_MIN_HUM;
-  float min_temp2=DHT11_MAX_TEMP;
-  float max_temp2=DHT11_MIN_TEMP;
-  float min_hum2=DHT11_MAX_HUM;
-  float max_hum2=DHT11_MIN_HUM;
+bool get_data_from_sensor(float * avgC, float * avgH, int * obs, float * min_temp, float * max_temp, float * min_hum, float * max_hum){
 
-  // If SD card & WiFi OK
-  if (flag == 0){
+  /* Initializing min & max variables */
+  
+  (*max_temp) = sensor.min_temp;
+  (*min_temp) = sensor.max_temp;
 
-    if (main_sensor == 22){
-      min_temp=DHT22_MAX_TEMP;
-      max_temp=DHT22_MIN_TEMP;
-      min_hum=DHT22_MAX_HUM;
-      max_hum=DHT22_MIN_HUM;
-      for(int i=0;i<readsperframe; ++i){
-        
-            if (main_sensor != 22) break; // If main sensor changed, break.
+  (*max_hum) = sensor.min_hum;
+  (*min_hum) = sensor.max_hum;
+
+  float temp, hum;
+
+  for(int i=0;i<reads_per_frame; ++i){
             
-            temp = dht1.readTemperature();
+    temp = dht.readTemperature();
             
-            hum = dht1.readHumidity();
+    hum = dht.readHumidity();
 
-            Serial.println("Temp: "+String(temp)+" Hum: "+String(hum));
-
-            delay(4000);
+    Serial.println("Temp: "+String(temp)+" Hum: "+String(hum));
             
-            if ((!isnan(temp) && !isnan(hum))) {
-              if ((temp >= DHT22_MIN_TEMP && temp <= DHT22_MAX_TEMP) && (hum >= DHT22_MIN_HUM && hum <= DHT22_MAX_HUM)){
-                (*avg1C) += temp;
-                (*avg1H) += hum;
-                ++s1;
-                if (min_temp > temp)
-                  min_temp=temp;
-
-                if (max_temp < temp)
-                  max_temp=temp;
-
-                if (min_hum > hum)
-                  min_hum=temp;
-
-                if (max_hum < hum)
-                  max_hum=hum;
-              }
-              else{
-                uint32_t curr_time = millis();
-                while (true){
-//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-//                    main_sensor = -1;
-//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-//                    break;
-//                  }
-                  temp = dht1.readTemperature();
-                  
-                  hum = dht1.readHumidity();
-
-                  Serial.println("INSIDE WHILE: Temp: "+String(temp)+" Hum: "+String(hum));
-
-                  delay(4000);
-                  
-                  if ((!isnan(temp) && !isnan(hum))) {
-                    if ((temp >= DHT22_MIN_TEMP && temp <= DHT22_MAX_TEMP) && (hum >= DHT22_MIN_HUM && hum <= DHT22_MAX_HUM))
-                      break;
-                }         
-                delay(STANDARD_DELAY_TIME);
-              }
-              if (main_sensor != -1){
-                if (min_temp > temp)
-                  min_temp=temp;
-
-                if (max_temp < temp)
-                  max_temp=temp;
-
-                if (min_hum > hum)
-                  min_hum=temp;
-
-                if (max_hum < hum)
-                  max_hum=hum;
-              }
-            }
-            }
-            else{
-                uint32_t curr_time = millis();
-                while (true){
-//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-//                    main_sensor = -1;
-//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-//                    break;
-//                  }
-                  temp = dht1.readTemperature();
-                  hum = dht1.readHumidity();
-                  Serial.println("INSIDE WHILE: Temp: "+String(temp)+" Hum: "+String(hum));
-                  delay(4000);
-                  if ((!isnan(temp) && !isnan(hum))) {
-                    if ((temp >= DHT22_MIN_TEMP && temp <= DHT22_MAX_TEMP) && (hum >= DHT22_MIN_HUM && hum <= DHT22_MAX_HUM))
-                      break;
-                }         
-                delay(STANDARD_DELAY_TIME);
-              }
-              if (main_sensor != -1){
-                if (min_temp > temp)
-                  min_temp=temp;
-
-                if (max_temp < temp)
-                  max_temp=temp;
-
-                if (min_hum > hum)
-                  min_hum=temp;
-
-                if (max_hum < hum)
-                  max_hum=hum;
-              }
-            }
-            delay(timeframe/readsperframe); // Wait n seconds before accessing sensor again.
-            }
+    if ((!isnan(temp) && !isnan(hum))) {
+      if ((temp >= sensor.min_temp && temp <= sensor.max_temp) && (hum >= sensor.min_hum && hum <= sensor.max_hum)){
+        (*avgC) += temp;
+        (*avgH) += hum;
+        ++(*obs);
+        update_min_max(temp, hum, min_temp, max_temp, min_hum, max_hum);
+     }
+     else{
+      if (get_valid_num(&temp, &hum) == 0){ 
+        (*avgC) += temp;
+        (*avgH) += hum;
+        ++(*obs);
+        update_min_max(temp, hum, min_temp, max_temp, min_hum, max_hum);
       }
-    if (main_sensor == 11){
-      min_temp2=DHT11_MAX_TEMP;
-      max_temp2=DHT11_MIN_TEMP;
-      min_hum2=DHT11_MAX_HUM;
-      max_hum2=DHT11_MIN_HUM;
-      for(int i=0;i<readsperframe; ++i){
-          if (main_sensor != 11) break;
-          temp2= dht1.readTemperature();
-          
-          hum2 = dht1.readHumidity();
-
-          Serial.println("Temp: "+String(temp2)+" Hum: "+String(hum2));
-
-          delay(4000);
-          
-          if ((!isnan(temp2) && !isnan(hum2))) {
-              if ((temp2 >= DHT11_MIN_TEMP && temp2 <= DHT11_MAX_TEMP) && (hum2 >= DHT11_MIN_HUM && hum2 <= DHT11_MAX_HUM)){
-                (*avg2C) += temp2;
-                (*avg2H) += hum2;
-                ++s2;
-
-                if (min_temp2 > temp2)
-                  min_temp2=temp2;
-
-                if (max_temp2 < temp2)
-                  max_temp2=temp2;
-
-                if (min_hum2 > hum2)
-                  min_hum2=temp2;
-
-                if (max_hum2 < hum2)
-                  max_hum2=hum2;
-              }
-              else{
-          
-                /* Try & get sensor values for max time the standard delay we set. If still nan or out of bounds, then sensors unavailable... */
-                uint32_t curr_time = millis();
-                while (true){
-//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-//                    main_sensor = -1;
-//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-//                    break;
-//                  }
-                  temp2 = dht1.readTemperature();
-                  hum2 = dht1.readHumidity();
-                  Serial.println("INSIDE WHILE: Temp: "+String(temp2)+" Hum: "+String(hum2));
-
-                  delay(4000);
-                  if ((!isnan(temp2) && !isnan(hum2))) {
-                    if ((temp2 >= DHT11_MIN_TEMP && temp <= DHT11_MAX_TEMP) && (hum2 >= DHT11_MIN_HUM && hum2 <= DHT11_MAX_HUM))
-                      break;
-                }
-                
-                delay(STANDARD_DELAY_TIME);
-              }
-              if (main_sensor != -1){
-                if (min_temp2 > temp2)
-                  min_temp2=temp2;
-
-                if (max_temp2 < temp2)
-                  max_temp2=temp2;
-
-                if (min_hum2 > hum2)
-                  min_hum2=temp2;
-
-                if (max_hum2 < hum2)
-                  max_hum2=hum2;
-              }
-            }
-          }
-         else{
-          
-                /* Try & get sensor values for max time the standard delay we set. If still nan or out of bounds, then sensors unavailable... */
-                uint32_t curr_time = millis();
-                while (true){
-//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-//                    main_sensor = -1;
-//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-//                    break;
-//                  }
-                  temp2 = dht1.readTemperature();
-                  hum2 = dht1.readHumidity();
-
-                  Serial.println("INSIDE WHILE: Temp: "+String(temp2)+" Hum: "+String(hum2));
-
-                  delay(4000);
-                  
-                  if ((!isnan(temp2) && !isnan(hum2))) {
-                    if ((temp2 >= DHT11_MIN_TEMP && temp2 <= DHT11_MAX_TEMP) && (hum2 >= DHT11_MIN_HUM && hum2 <= DHT11_MAX_HUM))
-                      break;
-                }
-                
-                delay(STANDARD_DELAY_TIME);
-              }
-              if (main_sensor != -1){
-                if (min_temp2 > temp2)
-                  min_temp2=temp2;
-
-                if (max_temp2 < temp2)
-                  max_temp2=temp2;
-
-                if (min_hum2 > hum2)
-                  min_hum2=temp2;
-
-                if (max_hum2 < hum2)
-                  max_hum2=hum2;
-              }
-            }
-          delay(timeframe/readsperframe); // Wait n seconds before accessing sensor again.
-       }
+      else 
+        return false;
+     }
+   }
+   else{
+    if (get_valid_num(&temp, &hum) == 0){
+      (*avgC) += temp;
+      (*avgH) += hum; 
+      ++(*obs);
+      update_min_max(temp, hum, min_temp, max_temp, min_hum, max_hum);
     }
-    if (main_sensor==22){
-      /* Remove min & max temperature & humidity values from averages (for better sampling) */
-      (*avg1C) -= max_temp;
-      (*avg1C) -= min_temp;
-      (*avg1H) -= max_hum;
-      (*avg1H) -= min_hum;
-      s1 -= 2;
-      (*avg1C) /= s1;
-      (*avg1H) /= s1;
-
-      PRINT_TO_USER(SEPARATOR, LCD_EMPTY, true);
-      PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY, true);
-      PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE, true);
-      delay(STANDARD_DELAY_TIME);
-      print_to_user(String((*avg1C)), String((*avg1C)), true);
-      delay(STANDARD_DELAY_TIME);
-//      lcd.clear();
-      PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY, true);
-      delay(STANDARD_DELAY_TIME);
-      print_to_user(String((*avg1H)), String((*avg1H)), true);
-    }
-    else if (main_sensor==11){
-      /* Remove min & max temperature & humidity values from averages (for better sampling) */
-      (*avg2C) -= max_temp2;
-      (*avg2C) -= min_temp2;
-      (*avg2H) -= max_hum2;
-      (*avg2H) -= min_hum2;
-      s2 -= 2;
-      (*avg2C) /= s2;
-      (*avg2H) /= s2;
-
-      PRINT_TO_USER(SEPARATOR, LCD_EMPTY, true);
-      PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY, true);
-      PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE, true);
-      delay(STANDARD_DELAY_TIME);
-      print_to_user(String((*avg2C)), String((*avg2C)), true);
-      delay(STANDARD_DELAY_TIME);
-//      lcd.clear();
-      PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY, true);
-      delay(STANDARD_DELAY_TIME);
-      print_to_user(String((*avg2H)), String((*avg2H)), true);
-    }
-    else{
-      PRINT_TO_USER(SENSORS_UNAVAILABLE, LCD_SENSORS_UNAVAILABLE, true);
-      delay(STANDARD_DELAY_TIME);
-      PRINT_TO_USER(RESET, LCD_RESET, true);
-      delay(STANDARD_DELAY_TIME);
+    else 
       return false;
-    }
-    
-    return true;
-
+   }  
+   delay(time_frame/reads_per_frame); // Wait n seconds before accessing sensor again.
   }
-
-  // If SD card OK, WiFi failed to connect
-  else if (flag == 1){
-
-
-  }
-
-  // If SD card failed to initialize & WiFi failed to connect
-  else{
-
-    if (main_sensor == 22){
-      min_temp=DHT22_MAX_TEMP;
-      max_temp=DHT22_MIN_TEMP;
-      min_hum=DHT22_MAX_HUM;
-      max_hum=DHT22_MIN_HUM;
-      for(int i=0;i<readsperframe; ++i){
-        
-            if (main_sensor != 22) break; // If main sensor changed, break.
-            
-            temp = dht1.readTemperature();
-            
-            hum = dht1.readHumidity();
-            
-            if ((!isnan(temp) && !isnan(hum))) {
-              if ((temp >= DHT22_MIN_TEMP && temp <= DHT22_MAX_TEMP) && (hum >= DHT22_MIN_HUM && hum <= DHT22_MAX_HUM)){
-                (*avg1C) += temp;
-                (*avg1H) += hum;
-                ++s1;
-                if (min_temp > temp)
-                  min_temp=temp;
-
-                if (max_temp < temp)
-                  max_temp=temp;
-
-                if (min_hum > hum)
-                  min_hum=temp;
-
-                if (max_hum < hum)
-                  max_hum=hum;
-              }
-              else{
-                uint32_t curr_time = millis();
-                while (true){
-//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-//                    main_sensor = -1;
-//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-//                    break;
-//                  }
-                  temp = dht1.readTemperature();
-                  hum = dht1.readHumidity();
-                  if ((!isnan(temp) && !isnan(hum))) {
-                    if ((temp >= DHT22_MIN_TEMP && temp <= DHT22_MAX_TEMP) && (hum >= DHT22_MIN_HUM && hum <= DHT22_MAX_HUM))
-                      break;
-                }         
-                delay(STANDARD_DELAY_TIME);
-              }
-              if (main_sensor != -1){
-                if (min_temp > temp)
-                  min_temp=temp;
-
-                if (max_temp < temp)
-                  max_temp=temp;
-
-                if (min_hum > hum)
-                  min_hum=temp;
-
-                if (max_hum < hum)
-                  max_hum=hum;
-              }
-            }
-            }
-            else{
-                uint32_t curr_time = millis();
-                while (true){
-//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-//                    main_sensor = -1;
-//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-//                    break;
-//                  }
-                  temp = dht1.readTemperature();
-                  hum = dht1.readHumidity();
-                  if ((!isnan(temp) && !isnan(hum))) {
-                    if ((temp >= DHT22_MIN_TEMP && temp <= DHT22_MAX_TEMP) && (hum >= DHT22_MIN_HUM && hum <= DHT22_MAX_HUM))
-                      break;
-                }         
-                delay(STANDARD_DELAY_TIME);
-              }
-              if (main_sensor != -1){
-                if (min_temp > temp)
-                  min_temp=temp;
-
-                if (max_temp < temp)
-                  max_temp=temp;
-
-                if (min_hum > hum)
-                  min_hum=temp;
-
-                if (max_hum < hum)
-                  max_hum=hum;
-              }
-            }
-            delay(timeframe/readsperframe); // Wait n seconds before accessing sensor again.
-            }
-      }
-    if (main_sensor == 11){
-      min_temp2=DHT11_MAX_TEMP;
-      max_temp2=DHT11_MIN_TEMP;
-      min_hum2=DHT11_MAX_HUM;
-      max_hum2=DHT11_MIN_HUM;
-      for(int i=0;i<readsperframe; ++i){
-          if (main_sensor != 11) break;
-          temp2= dht1.readTemperature();
-          
-          hum2 = dht1.readHumidity();
-          
-          if ((!isnan(temp2) && !isnan(hum2))) {
-              if ((temp2 >= DHT11_MIN_TEMP && temp2 <= DHT11_MAX_TEMP) && (hum2 >= DHT11_MIN_HUM && hum2 <= DHT11_MAX_HUM)){
-                (*avg2C) += temp2;
-                (*avg2H) += hum2;
-                ++s2;
-
-                if (min_temp2 > temp2)
-                  min_temp2=temp2;
-
-                if (max_temp2 < temp2)
-                  max_temp2=temp2;
-
-                if (min_hum2 > hum2)
-                  min_hum2=temp2;
-
-                if (max_hum2 < hum2)
-                  max_hum2=hum2;
-              }
-              else{
-          
-                /* Try & get sensor values for max time the standard delay we set. If still nan or out of bounds, then sensors unavailable... */
-                uint32_t curr_time = millis();
-                while (true){
-//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-//                    main_sensor = -1;
-//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-//                    break;
-//                  }
-                  temp2 = dht1.readTemperature();
-                  hum2 = dht1.readHumidity();
-                  if ((!isnan(temp2) && !isnan(hum2))) {
-                    if ((temp2 >= DHT11_MIN_TEMP && temp2 <= DHT11_MAX_TEMP) && (hum2 >= DHT11_MIN_HUM && hum2 <= DHT11_MAX_HUM))
-                      break;
-                }
-                delay(STANDARD_DELAY_TIME);
-              }
-              if (main_sensor != -1){
-                if (min_temp2 > temp2)
-                  min_temp2=temp2;
-
-                if (max_temp2 < temp2)
-                  max_temp2=temp2;
-
-                if (min_hum2 > hum2)
-                  min_hum2=temp2;
-
-                if (max_hum2 < hum2)
-                  max_hum2=hum2;
-              }
-            }
-          }
-         else{
-          
-                /* Try & get sensor values for max time the standard delay we set. If still nan or out of bounds, then sensors unavailable... */
-                uint32_t curr_time = millis();
-                while (true){
-//                  if (millis() - curr_time > STANDARD_DELAY_TIME*2){
-//                    main_sensor = -1;
-//                    PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, true);
-//                    break;
-//                  }
-                  temp2 = dht1.readTemperature();
-                  hum2 = dht1.readHumidity();
-                  if ((!isnan(temp2) && !isnan(hum2))) {
-                    if ((temp2 >= DHT11_MIN_TEMP && temp2 <= DHT11_MAX_TEMP) && (hum2 >= DHT11_MIN_HUM && hum2 <= DHT11_MAX_HUM))
-                      break;
-                }
-                delay(STANDARD_DELAY_TIME);
-              }
-              if (main_sensor != -1){
-                if (min_temp2 > temp2)
-                  min_temp2=temp2;
-
-                if (max_temp2 < temp2)
-                  max_temp2=temp2;
-
-                if (min_hum2 > hum2)
-                  min_hum2=temp2;
-
-                if (max_hum2 < hum2)
-                  max_hum2=hum2;
-              }
-            }
-          delay(timeframe/readsperframe); // Wait n seconds before accessing sensor again.
-       }
-    }
-    if (main_sensor==22){
-      /* Remove min & max temperature & humidity values from averages (for better sampling) */
-      (*avg1C) -= max_temp;
-      (*avg1C) -= min_temp;
-      (*avg1H) -= max_hum;
-      (*avg1H) -= min_hum;
-      s1 -= 2;
-      (*avg1C) /= s1;
-      (*avg1H) /= s1;
-
-      PRINT_TO_USER(SEPARATOR, LCD_EMPTY, true);
-      PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY, true);
-      PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE, true);
-      delay(STANDARD_DELAY_TIME);
-      print_to_user(String((*avg1C)), String((*avg1C)), true);
-      delay(STANDARD_DELAY_TIME);
-//      lcd.clear();
-      PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY, true);
-      delay(STANDARD_DELAY_TIME);
-      print_to_user(String((*avg1H)), String((*avg1H)), true);
-    }
-    else if (main_sensor==11){
-      /* Remove min & max temperature & humidity values from averages (for better sampling) */
-      Serial.println("avg2C (before): "+String((*avg2C)));
-      (*avg2C) -= max_temp2;
-      (*avg2C) -= min_temp2;
-      Serial.println("min_temp2: " + String(min_temp2) + " max_temp2: "+String(max_temp2));
-      Serial.println("avg2C (after): "+String((*avg2C)));
-      (*avg2H) -= max_hum2;
-      (*avg2H) -= min_hum2;
-      s2 -= 2;
-      (*avg2C) /= s2;
-      (*avg2H) /= s2;
-
-      PRINT_TO_USER(SEPARATOR, LCD_EMPTY, true);
-      PRINT_TO_USER(IN_CONDITIONS, LCD_EMPTY, true);
-      PRINT_TO_USER(TEMPERATURE, LCD_TEMPERATURE, true);
-      delay(STANDARD_DELAY_TIME);
-      print_to_user(String((*avg2C)), String((*avg2C)), true);
-      delay(STANDARD_DELAY_TIME);
-//      lcd.clear();
-      PRINT_TO_USER(HUMIDITY, LCD_HUMIDITY, true);
-      delay(STANDARD_DELAY_TIME);
-      print_to_user(String((*avg2H)), String((*avg2H)), true);
-    }
-    else{
-      PRINT_TO_USER(SENSORS_UNAVAILABLE, LCD_SENSORS_UNAVAILABLE, true);
-      delay(STANDARD_DELAY_TIME);
-      PRINT_TO_USER(RESET, LCD_RESET, true);
-      delay(STANDARD_DELAY_TIME);
-      return false;
-    }
-
-    return true;
+  
+  return true;
 }
 
+/*
+ * Function:  update_min_max
+ * --------------------
+ * checks each observation and updates (if needed) minimum & maximum value (temp & hum)
+ *
+ *  temp: temperature that being checked
+ *  hum: humidity that being checked
+ *  min_temp: pointer to minimum temperature variable (from all observations)
+ *  max_temp: pointer to maximum temperature variable (from all observations)
+ *  min_hum: pointer to minimum humidity variable (from all observations)
+ *  max_hum: pointer to maximum humidity variable (from all observations)
+ *
+ *  returns: nothing, void func
+ */
+
+void update_min_max(float temp, float hum, float * min_temp, float * max_temp, float * min_hum, float * max_hum){
+  
+  if ((*min_temp) > temp)
+    (*min_temp)=temp;
+
+  if ((*max_temp) < temp)
+    (*max_temp)=temp;
+
+  if ((*min_hum) > hum)
+    (*min_hum)=hum;
+
+  if ((*max_hum) < hum)
+    (*max_hum)=hum;
 }
 
-//int get_sensor_num(){
-//
-//  int sensor_num;
-//
-//  /*
-//   *  Returns 1 if sensor is DHT22
-//   *  Returns 2 if sensor is DHT11
-//   */
-//
-//  if (String(buffer) == "DHT22")
-//    sensor_num = 1;
-//  else if (String(buffer) == "DHT11")
-//    sensor_num = 2;
-//
-//  return sensor_num;
-//}
+/*
+ * Function:  get_valid_num
+ * --------------------
+ * tries to get valid data from sensor (temp & hum) for 6 seconds
+ *
+ *  temp: pointer to variable of temperature
+ *  hum: pointer to variable of humidity
+ *
+ *  returns: 0, if successfully got valid data (temp & hum)
+ *          -1, if couldn't get valid data (temp & hum) in 6 seconds
+ */
+
+int get_valid_num(float * temp, float * hum){
+
+  uint32_t curr_time = millis(); // curr_time has how many milliseconds the device is in operation
+  while (true){
+    if (millis() - curr_time > STANDARD_DELAY_TIME*2){ // if it reaches timeout, return
+      PRINT_TO_USER(OUT_OF_BOUND_ERROR, LCD_OUT_OF_BOUND_ERROR, 0, 0, true, true);
+      return -1;
+    }
+    (*temp) = dht.readTemperature();
+    (*hum) = dht.readHumidity();
+    Serial.println("INSIDE WHILE: Temp: "+String((*temp))+" Hum: "+String((*hum)));
+    delay(1000);
+    if ((!isnan((*temp)) && !isnan((*hum)))) {
+      if (((*temp) >= sensor.min_temp && (*temp) <= sensor.max_temp) && ((*hum) >= sensor.min_hum && (*hum) <= sensor.max_hum))
+         return 0;
+    }         
+    delay(1000);
+ }
+}

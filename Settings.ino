@@ -1,3 +1,16 @@
+/*
+ * Function:  get_setting_from_file
+ * --------------------
+ * gets a specific setting from configuration file (.ini format)
+ * 
+ * ini: configuration file (.ini format)
+ * section: name of section in configuration file
+ * entry: name of the entry inside the section
+ *
+ *  returns nothing, void func
+ *  
+ */
+
 void get_setting_from_file(IniFile ini, char* section, char* entry){
 
   /* Gets entry's value from specific section of config file */
@@ -13,6 +26,17 @@ void get_setting_from_file(IniFile ini, char* section, char* entry){
 
 }
 
+/*
+ * Function:  read_settings_from_sd
+ * --------------------
+ * reads all settings (section, entry) from a configuration file. Uses get_setting_from_file function
+ * 
+ * ini: configuration file (.ini format)
+ *
+ *  returns nothing, void func
+ *  
+ */
+
 void read_settings_from_sd(IniFile ini){
   
   /* Reading system settings from configuration file */
@@ -27,15 +51,11 @@ void read_settings_from_sd(IniFile ini){
 
   get_setting_from_file(ini, SYSTEM_SETTINGS, "TIME_FRAME");
 
-  sscanf(buffer, "%ld", &timeframe);
+  sscanf(buffer, "%ld", &time_frame);
 
   get_setting_from_file(ini, SYSTEM_SETTINGS, "READS_PER_FRAME");
 
-  sscanf(buffer, "%d", &readsperframe);
-
-//  get_setting_from_file(ini, SYSTEM_SETTINGS, "MAIN_SENSOR_TYPE");
-//
-//  main_sensor = get_sensor_num();
+  sscanf(buffer, "%d", &reads_per_frame);
 
   get_setting_from_file(ini, SYSTEM_SETTINGS, "WEATHER_API_KEY");
 
@@ -57,29 +77,41 @@ void read_settings_from_sd(IniFile ini){
 
   get_setting_from_file(ini, USER_SETTINGS, "CHANNEL_ID");
 
-  sscanf(buffer, "%ld", &channelID);
+  sscanf(buffer, "%ld", &channel_id);
 
   get_setting_from_file(ini, USER_SETTINGS, "CITY_ID");
 
   city_id = String(buffer);
 
+  get_setting_from_file(ini, USER_SETTINGS, "ZIP_CODE");
+
+  zip_code = String(buffer);
+
   get_setting_from_file(ini, USER_SETTINGS, "WRITE_API_KEY");
 
-  writeAPIKey = buffer;
+  write_api_key = buffer;
 
 }
+
+/*
+ * Function:  get_default_settings
+ * --------------------
+ * initializes settings variables with default settings (if SD & WiFi fails)
+ *
+ *  returns nothing, void func
+ *  
+ */
 
 void get_default_settings(){
 
   /* Get default settings, if SD fails */
 
   iot_server = "ThingSpeak";
-  channelID = 0;
-  writeAPIKey = "0";
+  channel_id = 0;
+  write_api_key = "0";
   delay_time = 500;
-  timeframe = 60000;
-  readsperframe = 10;
-  main_sensor = 11;
+  time_frame = 60000;
+  reads_per_frame = 10;
 
   wifi_ssid="Test";
   wifi_pass="Test";
