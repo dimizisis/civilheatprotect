@@ -68,19 +68,16 @@
 #define IN_AND_OUT_SENSORS "IN-house and Outdoor Humidity & temperature Sensors"
 #define CONFIG_FILE_NOT_EXIST "Configuration file doesn't seem to exist."
 #define DEFAULT_SETTINGS "Using Default Settings..."
-#define UNAVAILABLE_dht1 "Sensor dht1 unavailable..."
-#define UNAVAILABLE_DHT22 "Sensor DHT22 unavailable..."
 #define SENSORS_UNAVAILABLE "All sensors unavailable..."
 #define RESET "Please reset..."
 #define OUT_OF_BOUND_ERROR "Temperature or Humidity out of bounds"
-#define USING_dht1 "Using dht1 sensor..."
-#define USING_DHT22 "Using DHT22 sensor..."
 #define TEMPERATURE "Temperature (Celsius): "
 #define HUMIDITY "Humidity: "
 #define API_CONNECTION_FAILED "Connection with API has failed"
 #define PARSE_OBJECT_FAILED "parseObject() failed"
 #define GETTING_DATA "Getting data from API..."
 #define DATA_SEND_FAIL "Data send failed"
+#define IOT_SERV_NOT_SUPPORTED "IOT Server not supported. Cannot send files."
 
 /* LCD messages definition */
 
@@ -94,20 +91,17 @@
 #define LCD_SD_CARD_NOT_INITIALIZED "SD failed"
 #define LCD_CONFIG_FILE_NOT_EXIST "config.ini Fail"
 #define LCD_DEFAULT_SETTINGS "Default Settings"
-#define LCD_UNAVAILABLE_dht1 "dht1 error..."
-#define LCD_UNAVAILABLE_DHT22 "DHT22 error..."
 #define LCD_SENSORS_UNAVAILABLE "Sensors error..."
 #define LCD_RESET "Reseting..."
 #define LCD_OUT_OF_BOUND_ERROR "Temp/Hum error"
-#define LCD_USING_dht1 "Using dht1..."
-#define LCD_USING_DHT22 "Using DHT22..."
 #define LCD_TEMPERATURE "TEMP (C): "
-#define LCD_HUMIDITY "HUM (%): "
+#define LCD_HUMIDITY "HUM  (%): "
 #define LCD_EMPTY ""
 #define LCD_API_CONNECTION_FAILED "API conn. failed"
 #define LCD_PARSE_OBJECT_FAILED "Parsing failed"
 #define LCD_GETTING_DATA "API Fetching"
 #define LCD_DATA_SEND_FAIL "Data send failed"
+#define LCD_IOT_SERV_NOT_SUPPORTED "Post fail..."
 
 /* Macro Function for printing to user (Serial & LCD) */
 #define PRINT_TO_USER(serial_message, lcd_message, cursor1, cursor2, write_to_lcd, clear_lcd) print_to_user(serial_message, lcd_message, cursor1, cursor2, write_to_lcd, clear_lcd)
@@ -207,6 +201,9 @@ void setup() {
 
   /* Delay that will let system to boot properly */
   delay(SYSTEM_BOOT_DELAY); // Delay to let system boot Wait before accessing Sensor
+
+  /* Clear LCD before loop */
+  lcd.clear();
 }
 
 void loop() {
@@ -217,7 +214,7 @@ void loop() {
     int DI_in, DI_out;
     int obs=0; // Observations
 
-    PRINT_TO_USER(EMPTY, LCD_SAMPLING, 0, 0, true, true);
+    PRINT_TO_USER(EMPTY, LCD_SAMPLING, 0, 0, true, false);
 
     /* Get samples from sensor */
     sensor_success = get_data_from_sensor(&avgC, &avgH, &obs, &min_temp, &max_temp, &min_hum, &max_hum);
@@ -254,10 +251,13 @@ void loop() {
       DI_out = calc_DI(DI_temp_out);
       
       (void) write_to_server(iot_server, avgC, avgH, DI_in, DI_out);
+      delay(STANDARD_DELAY_TIME);
       print_to_user("T:"+String(avgC,1)+"  H:"+String(avgH,1)+"%", "T:"+String(avgC,1)+"  H:"+String(avgH,1)+"%", 0, 0, true, true);
       delay(STANDARD_DELAY_TIME);
       print_to_user("DI-IN:"+String(DI_in)+" DI-OUT:"+String(DI_out), "DI-IN:"+String(DI_in)+" DI-OUT:"+String(DI_out), 0, 1, true, false);
       delay(SERVER_MINIMUM_DELAY_TIME);
+      /* Print temperature & humidity until next print */
+      print_to_user("T:"+String(avgC,1)+"  H:"+String(avgH,1)+"%", "T:"+String(avgC,1)+"  H:"+String(avgH,1)+"%", 0, 1, true, true);
     }
     else{
       
@@ -268,6 +268,8 @@ void loop() {
       
       print_to_user("DI-IN:"+String(DI_in), "DI-IN:"+String(DI_in), 0, 1, true, false);
       delay(STANDARD_DELAY_TIME);
+      /* Print temperature & humidity until next print */
+      print_to_user("T:"+String(avgC,1)+"  H:"+String(avgH,1)+"%", "T:"+String(avgC,1)+"  H:"+String(avgH,1)+"%", 0, 1, true, true);
     }
 
 }

@@ -10,7 +10,9 @@
  *  field4Data: data of field 4
  *
  *  returns: 200, if post was successful
+ *           -1, if IOT server not supported
  *           other value, if post wasn't successful
+ *           
  */
 
 int write_to_server(String server, float field1Data, float field2Data, int field3Data, int field4Data){
@@ -24,22 +26,9 @@ int write_to_server(String server, float field1Data, float field2Data, int field
     int write_success;
     if (write_success = ThingSpeak.writeFields(channel_id, write_api_key) != 200)
       print_to_user(DATA_SEND_FAIL, LCD_DATA_SEND_FAIL, 0, 0, true, true);
-    delay(STANDARD_DELAY_TIME);
     
     return write_success;
   }
+  print_to_user(IOT_SERV_NOT_SUPPORTED, LCD_IOT_SERV_NOT_SUPPORTED, 0, 0, true, true);
+  return -1;
 }
-
-//void write_metadata_to_server (){
-//
-//  int postCode = 54635;
-//
-//  String postMessage = ("metadata={\"postcode\":" + postCode + "}" );
-//
-//  int writeSuccess = writeRaw (channelID, postMessage, write_api_key);
-//
-//  if ( writeSuccess == 200 )
-//    Serial.println("Metadata sent to TS.")
-//  else
-//    Serial.println("Failed send metadata to TS.");
-//}
