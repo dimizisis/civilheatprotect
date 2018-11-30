@@ -11,4 +11,4 @@
 #### iii) Put all .ino files to created folder (project's folder)
 #### iv) Open one of .ino files & you should be able to see all tabs
 
-![alt text](https://imgur.com/a/jFvvBnv)
+![alt text](https://imgur.com/DJxwNIo)
