@@ -16,7 +16,7 @@ DI = 0.4 (td + tw) + 15
 
 ### Connection with OpenWeatherMap Web Service
 
-Depending on the location of the user (City ID), prices are obtained from the OpenWeatherMap server for the current weather conditions.
+Depending on the location of the user (City ID), values are obtained from the OpenWeatherMap server for the current weather conditions.
 Of the values we get, we only keep the temperature and humidity (these are needed to calculate DI).
 In case there is no connection to the server, we do not calculate DI Out).
 
