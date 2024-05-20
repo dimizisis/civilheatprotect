@@ -10,9 +10,7 @@ Using WeMos D1R1 as a warning system for internal extreme heat (inside temperatu
 
 ### Discomfort Index
 
-DI = 0.4 (td + tw) + 15
-
-![alt_text](https://cdn.24.co.za/files/Cms/General/d/3649/a016d89036844b31a5a88b06060f0f44.jpg)
+```DI = 0.4 (td + tw) + 15```
 
 ### Connection with OpenWeatherMap Web Service
 
